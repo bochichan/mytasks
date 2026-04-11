@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>タスク</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+  --bg: #0f0f11;
+  --surface: #16161a;
+  --surface2: #1e1e24;
+  --border: #2a2a33;
+  --text: #e8e8f0;
+  --muted: #6b6b80;
+  --accent: #7c6aff;
+  --accent-dim: #7c6aff22;
+  --a: #ff6b6b; --a-dim: #ff6b6b18;
+  --b: #ffd166; --b-dim: #ffd16618;
+  --c: #06d6a0; --c-dim: #06d6a018;
+  --d: #4a9eff; --d-dim: #4a9eff18;
+  --single: #a78bfa;
+  --project: #f59e0b;
+  --recur: #34d399;
+  --tab-h: 60px;
+  --header-h: 56px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; }
+body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); font-size: 15px; }
+
+/* HEADER */
+.header {
+  position: fixed; top: 0; left: 0; right: 0; height: var(--header-h);
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 16px; gap: 10px; z-index: 10;
+}
+.header-title { flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--muted); }
+.sync-status { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); flex-shrink: 0; }
+.sync-status.ok { color: var(--c); } .sync-status.err { color: var(--a); } .sync-status.busy { color: var(--b); }
+.icon-btn {
+  width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border);
+  background: none; color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+}
+.icon-btn:active { background: var(--surface2); }
+
+/* MAIN CONTENT AREA */
+.content {
+  position: fixed; top: var(--header-h); left: 0; right: 0;
+  bottom: calc(var(--tab-h) + var(--safe-bottom));
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+}
+.content::-webkit-scrollbar { display: none; }
+
+/* ══════════════════════════
+   TREE VIEW
+══════════════════════════ */
+.tree-view { padding: 10px 12px 24px; }
+
+.tree-node {
+  border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--border); background: var(--surface);
+  margin-bottom: 7px;
+}
+
+.node-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 12px 12px 10px;
+  position: relative; overflow: hidden;
+}
+
+.node-bar {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+}
+.bar-a { background: var(--a); } .bar-b { background: var(--b); }
+.bar-c { background: var(--c); } .bar-d { background: var(--d); }
+
+.node-expand {
+  width: 24px; height: 24px; border-radius: 6px; border: none;
+  background: var(--surface2); color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; flex-shrink: 0; touch-action: manipulation;
+  transition: transform .15s;
+}
+.node-expand.expanded { transform: rotate(90deg); }
+.node-expand.leaf { background: none; color: transparent; cursor: default; }
+
+.node-check {
+  width: 22px; height: 22px; border: 2px solid var(--border);
+  border-radius: 6px; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  touch-action: manipulation; transition: all .15s;
+}
+.node-check.checked { background: var(--accent); border-color: var(--accent); }
+.node-check.checked::after { content: '✓'; color: white; font-size: 11px; font-weight: 700; }
+
+.node-body { flex: 1; min-width: 0; }
+.node-title { font-size: 14px; line-height: 1.4; word-break: break-all; }
+.node-done .node-title { text-decoration: line-through; opacity: .5; }
+
+.node-meta { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+.badge {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  padding: 2px 6px; border-radius: 3px; font-weight: 600; text-transform: uppercase;
+}
+.badge-a { background: #ff6b6b22; color: var(--a); }
+.badge-b { background: #ffd16622; color: var(--b); }
+.badge-c { background: #06d6a022; color: var(--c); }
+.badge-d { background: #4a9eff22; color: var(--d); }
+.badge-single { background: #a78bfa22; color: var(--single); }
+.badge-project { background: #f59e0b22; color: var(--project); }
+.badge-recurring { background: #34d39922; color: var(--recur); }
+
+.node-note { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+
+.node-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.node-act-btn {
+  width: 28px; height: 28px; border-radius: 7px; border: none;
+  background: none; color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; touch-action: manipulation; transition: all .15s;
+}
+.node-act-btn:active { background: var(--surface2); }
+.node-act-btn.add-child { color: var(--accent); }
+.node-act-btn.del { color: var(--border); }
+.node-act-btn.del:active { color: var(--a); }
+
+/* children indent */
+.node-children {
+  border-top: 1px solid var(--border);
+  padding: 6px 0 6px 16px;
+  display: flex; flex-direction: column; gap: 6px;
+  background: var(--bg);
+}
+
+.node-children .tree-node { margin-bottom: 0; }
+
+/* ══════════════════════════
+   MATRIX VIEW
+══════════════════════════ */
+.matrix-view { padding: 10px 12px 24px; display: flex; flex-direction: column; gap: 10px; }
+
+.quad-section { border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+
+.quad-header {
+  padding: 10px 14px; display: flex; align-items: center; gap: 10px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600;
+}
+.quad-header-a { background: var(--a-dim); color: var(--a); border-bottom: 1px solid #ff6b6b33; }
+.quad-header-b { background: var(--b-dim); color: var(--b); border-bottom: 1px solid #ffd16633; }
+.quad-header-c { background: var(--c-dim); color: var(--c); border-bottom: 1px solid #06d6a033; }
+.quad-header-d { background: var(--d-dim); color: var(--d); border-bottom: 1px solid #4a9eff33; }
+.quad-header-done { background: var(--surface2); color: var(--muted); border-bottom: 1px solid var(--border); }
+.quad-label { flex: 1; }
+.quad-count { opacity: .6; font-size: 10px; }
+
+.matrix-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px; border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.matrix-item:last-child { border-bottom: none; }
+
+.matrix-check {
+  width: 20px; height: 20px; border: 1.5px solid var(--border);
+  border-radius: 5px; flex-shrink: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 10px;
+  touch-action: manipulation; transition: all .15s;
+}
+.matrix-check.checked { background: var(--accent); border-color: var(--accent); color: white; }
+
+.matrix-body { flex: 1; min-width: 0; }
+.matrix-title { font-size: 14px; line-height: 1.4; word-break: break-all; }
+.matrix-path { font-size: 10px; color: var(--muted); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+.matrix-done .matrix-title { text-decoration: line-through; opacity: .5; }
+
+/* ══════════════════════════
+   TAB BAR
+══════════════════════════ */
+.tabbar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: calc(var(--tab-h) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  background: var(--surface); border-top: 1px solid var(--border);
+  display: flex; align-items: stretch; z-index: 20;
+}
+.tab-btn {
+  flex: 1; background: none; border: none; color: var(--muted);
+  cursor: pointer; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 3px;
+  font-size: 9px; font-family: 'JetBrains Mono', monospace;
+  letter-spacing: .04em; touch-action: manipulation; position: relative;
+}
+.tab-btn.active { color: var(--accent); }
+.tab-btn.active::after {
+  content: ''; position: absolute; top: 0; left: 20%; right: 20%;
+  height: 2px; background: var(--accent); border-radius: 0 0 2px 2px;
+}
+.tab-icon { font-size: 20px; line-height: 1; }
+.fab {
+  width: 52px; height: 52px; border-radius: 16px;
+  background: var(--accent); border: none; color: white; font-size: 26px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 20px #7c6aff44; transition: transform .15s;
+  touch-action: manipulation; flex-shrink: 0; align-self: center; margin: 0 4px;
+}
+.fab:active { transform: scale(.93); }
+
+/* ══════════════════════════
+   BOTTOM SHEET
+══════════════════════════ */
+.sheet-overlay {
+  position: fixed; inset: 0; background: #00000088; z-index: 30; display: none;
+}
+.sheet-overlay.open { display: block; }
+.sheet {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--surface); border-radius: 20px 20px 0 0;
+  border-top: 1px solid var(--border); z-index: 31;
+  padding: 0 16px calc(16px + var(--safe-bottom));
+  transform: translateY(100%);
+  transition: transform .3s cubic-bezier(.32,0,.67,0);
+  max-height: 92dvh; overflow-y: auto;
+}
+.sheet.open { transform: translateY(0); transition: transform .3s cubic-bezier(.33,1,.68,1); }
+.sheet-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 12px auto 16px; }
+.sheet-title { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
+.sheet-subtitle { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+
+.field-label {
+  font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace;
+  letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; margin-top: 14px;
+}
+.f-input, .f-textarea {
+  width: 100%; background: var(--bg); border: 1px solid var(--border);
+  color: var(--text); border-radius: 10px; padding: 12px 14px;
+  font-family: 'Noto Sans JP', sans-serif; font-size: 15px;
+  outline: none; transition: border-color .15s; -webkit-appearance: none;
+}
+.f-input:focus, .f-textarea:focus { border-color: var(--accent); }
+.f-textarea { resize: none; min-height: 72px; }
+
+.seg-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.seg-btn {
+  flex: 1; min-width: 0; padding: 10px 4px; border-radius: 9px;
+  border: 1.5px solid var(--border); background: none; color: var(--muted);
+  font-family: 'Noto Sans JP', sans-serif; font-size: 12px;
+  cursor: pointer; text-align: center; transition: all .15s;
+  touch-action: manipulation; line-height: 1.3;
+}
+.seg-btn.sel-single    { border-color: var(--single);  background: #a78bfa22; color: var(--single); }
+.seg-btn.sel-project   { border-color: var(--project); background: #f59e0b22; color: var(--project); }
+.seg-btn.sel-recurring { border-color: var(--recur);   background: #34d39922; color: var(--recur); }
+.seg-btn.sel-A { border-color: var(--a); background: #ff6b6b22; color: var(--a); }
+.seg-btn.sel-B { border-color: var(--b); background: #ffd16622; color: var(--b); }
+.seg-btn.sel-C { border-color: var(--c); background: #06d6a022; color: var(--c); }
+.seg-btn.sel-D { border-color: var(--d); background: #4a9eff22; color: var(--d); }
+
+.sheet-actions { display: flex; gap: 10px; margin-top: 20px; }
+.btn {
+  flex: 1; padding: 14px; border-radius: 12px; border: none;
+  cursor: pointer; font-size: 15px; font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 500; transition: opacity .15s; touch-action: manipulation;
+}
+.btn:active { opacity: .75; }
+.btn-primary { background: var(--accent); color: white; }
+.btn-ghost { background: var(--surface2); color: var(--muted); }
+
+.menu-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 4px; border-bottom: 1px solid var(--border);
+  cursor: pointer; font-size: 15px; touch-action: manipulation;
+}
+.menu-item:last-child { border-bottom: none; }
+.menu-item:active { opacity: .6; }
+.menu-icon { font-size: 20px; width: 28px; text-align: center; }
+
+/* LOGIN */
+.login-screen {
+  position: fixed; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 20px; background: var(--bg); z-index: 100; padding: 32px;
+}
+.login-screen.hidden { display: none; }
+.login-title { font-size: 22px; font-weight: 500; }
+.login-sub { font-size: 13px; color: var(--muted); text-align: center; line-height: 1.7; }
+.login-btn {
+  padding: 14px 32px; border-radius: 12px;
+  background: var(--accent); border: none; color: white;
+  font-size: 15px; font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 500; cursor: pointer; touch-action: manipulation;
+}
+
+/* EMPTY */
+.empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; color: var(--muted); font-size: 13px; padding: 60px 0;
+}
+.empty-icon { font-size: 40px; opacity: .3; }
+</style>
+</head>
+<body>
+
+<div class="login-screen" id="login-screen">
+  <div class="login-title">タスク管理</div>
+  <div class="login-sub">Googleアカウントでログインすると<br>タスクがドライブに自動保存されます</div>
+  <button class="login-btn" onclick="signIn()">Googleでログイン</button>
+</div>
+
+<header class="header">
+  <span class="header-title" id="header-title">ツリー</span>
+  <span class="sync-status" id="sync-status"></span>
+  <button class="icon-btn" onclick="openMenu()">⋯</button>
+</header>
+
+<div class="content" id="content"></div>
+
+<nav class="tabbar">
+  <button class="tab-btn active" id="tab-tree" onclick="switchView('tree')">
+    <span class="tab-icon">⌥</span>ツリー
+  </button>
+  <button class="fab" onclick="openForm(null)">＋</button>
+  <button class="tab-btn" id="tab-matrix" onclick="switchView('matrix')">
+    <span class="tab-icon">⊞</span>マトリクス
+  </button>
+</nav>
+
+<!-- FORM SHEET -->
+<div class="sheet-overlay" id="form-overlay" onclick="closeForm()"></div>
+<div class="sheet" id="form-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="form-title">ノードを追加</div>
+  <div class="sheet-subtitle" id="form-subtitle"></div>
+
+  <div class="field-label">タイトル</div>
+  <input class="f-input" id="f-title" placeholder="例：研究 / キクラゲ引き継ぎ完了" />
+
+  <div class="field-label">種別</div>
+  <div class="seg-group" id="seg-type">
+    <button class="seg-btn sel-single" data-val="single" onclick="selectSeg('type','single')">単発</button>
+    <button class="seg-btn" data-val="project" onclick="selectSeg('type','project')">プロジェクト</button>
+    <button class="seg-btn" data-val="recurring" onclick="selectSeg('type','recurring')">定期</button>
+  </div>
+
+  <div class="field-label">優先度</div>
+  <div class="seg-group" id="seg-priority">
+    <button class="seg-btn" data-val="A" onclick="selectSeg('priority','A')">A<br><span style="font-size:10px;opacity:.7">緊急×重要</span></button>
+    <button class="seg-btn sel-B" data-val="B" onclick="selectSeg('priority','B')">B<br><span style="font-size:10px;opacity:.7">重要</span></button>
+    <button class="seg-btn" data-val="C" onclick="selectSeg('priority','C')">C<br><span style="font-size:10px;opacity:.7">緊急</span></button>
+    <button class="seg-btn" data-val="D" onclick="selectSeg('priority','D')">D<br><span style="font-size:10px;opacity:.7">その他</span></button>
+  </div>
+
+  <div class="field-label">メモ（任意）</div>
+  <textarea class="f-textarea" id="f-note" placeholder="補足など"></textarea>
+
+  <div id="f-interval-wrap" style="display:none">
+    <div class="field-label">繰り返し</div>
+    <input class="f-input" id="f-interval" placeholder="例：毎週月曜" />
+  </div>
+
+  <div class="sheet-actions">
+    <button class="btn btn-ghost" onclick="closeForm()">キャンセル</button>
+    <button class="btn btn-primary" onclick="submitNode()">追加する</button>
+  </div>
+</div>
+
+<!-- MENU SHEET -->
+<div class="sheet-overlay" id="menu-overlay" onclick="closeMenu()"></div>
+<div class="sheet" id="menu-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">メニュー</div>
+  <div class="menu-item" onclick="syncFromDrive(); closeMenu()">
+    <span class="menu-icon">↓</span>ドライブから再読み込み
+  </div>
+  <div class="menu-item" onclick="forceSyncToDrive(); closeMenu()">
+    <span class="menu-icon">↑</span>ドライブへ強制保存
+  </div>
+  <div class="menu-item" onclick="signOut(); closeMenu()">
+    <span class="menu-icon">⏻</span>ログアウト
+  </div>
+</div>
+
+<script>
+const CLIENT_ID = '741303706363-kgdmf1pot1c86sv0poncpiehmcop81d9.apps.googleusercontent.com';
+const SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+const FILE_NAME = 'tasks.json';
+const LS_KEY = 'sasami_tasks_v3';
+const LS_TOKEN = 'sasami_gtoken';
+
+// ツリー構造: nodes = [{id, title, type, priority, note, interval, done, expanded, children:[...]}, ...]
+let nodes = [];
+let accessToken = null;
+let driveFileId = null;
+let tokenClient = null;
+let currentView = 'tree';
+let formParentId = null; // nullなら root
+let formType = 'single';
+let formPriority = 'B';
+
+// ══════════════════════
+//   GOOGLE AUTH
+// ══════════════════════
+function initGIS() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID, scope: SCOPE,
+    callback: async (resp) => {
+      if (resp.error) { setSyncStatus('err', 'ログイン失敗'); return; }
+      accessToken = resp.access_token;
+      localStorage.setItem(LS_TOKEN, accessToken);
+      document.getElementById('login-screen').classList.add('hidden');
+      await syncFromDrive();
+    },
+  });
+  const saved = localStorage.getItem(LS_TOKEN);
+  if (saved) {
+    accessToken = saved;
+    document.getElementById('login-screen').classList.add('hidden');
+    syncFromDrive().catch(() => {
+      accessToken = null;
+      localStorage.removeItem(LS_TOKEN);
+      document.getElementById('login-screen').classList.remove('hidden');
+    });
+  }
+}
+
+function signIn() { tokenClient.requestAccessToken({ prompt: 'consent' }); }
+function signOut() {
+  if (accessToken) google.accounts.oauth2.revoke(accessToken);
+  accessToken = null;
+  localStorage.removeItem(LS_TOKEN);
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
+// ══════════════════════
+//   DRIVE API
+// ══════════════════════
+async function driveReq(method, path, params, body) {
+  const url = new URL('https://www.googleapis.com' + path);
+  if (params) Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+  const opts = { method, headers: { Authorization: 'Bearer ' + accessToken } };
+  if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  const res = await fetch(url, opts);
+  if (res.status === 401) throw new Error('401');
+  return res;
+}
+
+async function findFile() {
+  const res = await driveReq('GET', '/drive/v3/files', { spaces: 'appDataFolder', q: `name='${FILE_NAME}'`, fields: 'files(id)' });
+  const data = await res.json();
+  return data.files?.[0]?.id || null;
+}
+
+async function readFile(fileId) {
+  const res = await driveReq('GET', `/drive/v3/files/${fileId}`, { alt: 'media' });
+  return await res.json();
+}
+
+async function createFile(content) {
+  const boundary = 'boundary_tasks';
+  const meta = JSON.stringify({ name: FILE_NAME, parents: ['appDataFolder'] });
+  const body = `--${boundary}\r\nContent-Type: application/json\r\n\r\n${meta}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(content)}\r\n--${boundary}--`;
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': `multipart/related; boundary=${boundary}` },
+    body,
+  });
+  return (await res.json()).id;
+}
+
+async function updateFile(fileId, content) {
+  await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify(content),
+  });
+}
+
+async function syncFromDrive() {
+  setSyncStatus('busy', '読込中…');
+  try {
+    driveFileId = await findFile();
+    if (driveFileId) {
+      nodes = await readFile(driveFileId);
+    } else {
+      const local = localStorage.getItem(LS_KEY);
+      nodes = local ? JSON.parse(local) : [];
+      driveFileId = await createFile(nodes);
+    }
+    localStorage.setItem(LS_KEY, JSON.stringify(nodes));
+    setSyncStatus('ok', '同期済み');
+    render();
+  } catch(e) {
+    setSyncStatus('err', '同期失敗');
+    const local = localStorage.getItem(LS_KEY);
+    if (local) nodes = JSON.parse(local);
+    render();
+  }
+}
+
+async function saveToDrive() {
+  localStorage.setItem(LS_KEY, JSON.stringify(nodes));
+  if (!accessToken || !driveFileId) return;
+  setSyncStatus('busy', '保存中…');
+  try {
+    await updateFile(driveFileId, nodes);
+    setSyncStatus('ok', '保存済み');
+  } catch { setSyncStatus('err', '保存失敗'); }
+}
+
+async function forceSyncToDrive() {
+  setSyncStatus('busy', '保存中…');
+  try {
+    if (!driveFileId) driveFileId = await findFile();
+    if (driveFileId) await updateFile(driveFileId, nodes);
+    else driveFileId = await createFile(nodes);
+    setSyncStatus('ok', '保存済み');
+  } catch { setSyncStatus('err', '保存失敗'); }
+}
+
+function setSyncStatus(type, msg) {
+  const el = document.getElementById('sync-status');
+  el.className = 'sync-status ' + type;
+  el.textContent = msg;
+}
+
+// ══════════════════════
+//   TREE UTILS
+// ══════════════════════
+function makeId() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+function findNode(id, arr) {
+  for (const n of arr) {
+    if (n.id === id) return n;
+    const found = findNode(id, n.children || []);
+    if (found) return found;
+  }
+  return null;
+}
+
+function findParentArr(id, arr) {
+  for (const n of arr) {
+    if ((n.children || []).some(c => c.id === id)) return n.children;
+    const found = findParentArr(id, n.children || []);
+    if (found) return found;
+  }
+  return null;
+}
+
+function deleteNodeById(id, arr) {
+  const idx = arr.findIndex(n => n.id === id);
+  if (idx !== -1) { arr.splice(idx, 1); return true; }
+  for (const n of arr) { if (deleteNodeById(id, n.children || [])) return true; }
+  return false;
+}
+
+// ノードのパスを文字列で返す（マトリクス表示用）
+function getPath(id, arr, path) {
+  for (const n of arr) {
+    const cur = [...path, n.title];
+    if (n.id === id) return cur.slice(0, -1);
+    const found = getPath(id, n.children || [], cur);
+    if (found !== null) return found;
+  }
+  return null;
+}
+
+// 全ノードをフラットに返す（done含む）
+function flattenNodes(arr, acc) {
+  for (const n of arr) {
+    acc.push(n);
+    flattenNodes(n.children || [], acc);
+  }
+  return acc;
+}
+
+// ══════════════════════
+//   VIEW SWITCH
+// ══════════════════════
+function switchView(v) {
+  currentView = v;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + v).classList.add('active');
+  document.getElementById('header-title').textContent = v === 'tree' ? 'ツリー' : 'マトリクス';
+  render();
+}
+
+// ══════════════════════
+//   RENDER
+// ══════════════════════
+function render() {
+  const el = document.getElementById('content');
+  if (currentView === 'tree') {
+    el.innerHTML = `<div class="tree-view">${renderTreeNodes(nodes, 0)}</div>`;
+    if (!nodes.length) el.innerHTML = `<div class="tree-view"><div class="empty"><div class="empty-icon">◎</div><div>＋でノードを追加</div></div></div>`;
+  } else {
+    el.innerHTML = renderMatrix();
+  }
+}
+
+function renderTreeNodes(arr, depth) {
+  return arr.map(n => renderTreeNode(n, depth)).join('');
+}
+
+function renderTreeNode(n, depth) {
+  const hasChildren = (n.children || []).length > 0;
+  const expanded = n.expanded !== false;
+  const barCls = 'bar-' + n.priority.toLowerCase();
+  const badgePriority = `badge-${n.priority.toLowerCase()}`;
+  const badgeType = `badge-${n.type}`;
+  const typeLabel = { single:'単発', project:'PJ', recurring:'定期' }[n.type];
+  const doneClass = n.done ? 'node-done' : '';
+
+  const expandIcon = hasChildren
+    ? `<button class="node-expand ${expanded ? 'expanded' : ''}" onclick="toggleExpand('${n.id}')">▶</button>`
+    : `<button class="node-expand leaf">·</button>`;
+
+  const noteHtml = n.note ? `<div class="node-note">${esc(n.note)}</div>` : '';
+  const recurHtml = n.type === 'recurring' && n.interval ? `<div class="node-note" style="color:var(--recur)">↻ ${esc(n.interval)}</div>` : '';
+
+  const childrenHtml = hasChildren && expanded
+    ? `<div class="node-children">${renderTreeNodes(n.children, depth + 1)}</div>`
+    : '';
+
+  return `
+    <div class="tree-node" id="node-${n.id}">
+      <div class="node-row ${doneClass}">
+        <div class="node-bar ${barCls}"></div>
+        ${expandIcon}
+        <div class="node-check ${n.done ? 'checked' : ''}" onclick="toggleDone('${n.id}')"></div>
+        <div class="node-body">
+          <div class="node-title">${esc(n.title)}</div>
+          <div class="node-meta">
+            <span class="badge ${badgePriority}">${n.priority}</span>
+            <span class="badge ${badgeType}">${typeLabel}</span>
+          </div>
+          ${noteHtml}${recurHtml}
+        </div>
+        <div class="node-actions">
+          <button class="node-act-btn add-child" onclick="openForm('${n.id}')" title="子を追加">＋</button>
+          <button class="node-act-btn del" onclick="deleteNode('${n.id}')" title="削除">×</button>
+        </div>
+      </div>
+      ${childrenHtml}
+    </div>`;
+}
+
+function renderMatrix() {
+  const all = flattenNodes(nodes, []);
+  const active = all.filter(n => !n.done);
+  const done   = all.filter(n => n.done);
+
+  const quads = [
+    { key: 'A', label: 'A ― 緊急×重要', cls: 'quad-header-a' },
+    { key: 'B', label: 'B ― 重要',       cls: 'quad-header-b' },
+    { key: 'C', label: 'C ― 緊急',       cls: 'quad-header-c' },
+    { key: 'D', label: 'D ― その他',     cls: 'quad-header-d' },
+  ];
+
+  let html = '<div class="matrix-view">';
+
+  for (const q of quads) {
+    const items = active.filter(n => n.priority === q.key);
+    if (!items.length) continue;
+    html += `<div class="quad-section">
+      <div class="quad-header ${q.cls}">
+        <span class="quad-label">${q.label}</span>
+        <span class="quad-count">${items.length}</span>
+      </div>`;
+    html += items.map(n => {
+      const path = getPath(n.id, nodes, []);
+      const pathStr = path && path.length ? path.join(' › ') : '';
+      return `
+        <div class="matrix-item">
+          <div class="matrix-check ${n.done ? 'checked' : ''}" onclick="toggleDone('${n.id}')">${n.done ? '✓' : ''}</div>
+          <div class="matrix-body">
+            <div class="matrix-title">${esc(n.title)}</div>
+            ${pathStr ? `<div class="matrix-path">${esc(pathStr)}</div>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+    html += `</div>`;
+  }
+
+  if (done.length) {
+    html += `<div class="quad-section">
+      <div class="quad-header quad-header-done">
+        <span class="quad-label">完了済み</span>
+        <span class="quad-count">${done.length}</span>
+      </div>`;
+    html += done.map(n => `
+      <div class="matrix-item matrix-done">
+        <div class="matrix-check checked" onclick="toggleDone('${n.id}')">✓</div>
+        <div class="matrix-body"><div class="matrix-title">${esc(n.title)}</div></div>
+      </div>`).join('');
+    html += `</div>`;
+  }
+
+  if (!active.length && !done.length) {
+    html += `<div class="empty"><div class="empty-icon">◎</div><div>タスクなし</div></div>`;
+  }
+
+  html += '</div>';
+  return html;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ══════════════════════
+//   ACTIONS
+// ══════════════════════
+function toggleExpand(id) {
+  const n = findNode(id, nodes);
+  if (!n) return;
+  n.expanded = n.expanded === false ? true : false;
+  render(); saveToDrive();
+}
+
+function toggleDone(id) {
+  const n = findNode(id, nodes);
+  if (!n) return;
+  n.done = !n.done;
+  render(); saveToDrive();
+}
+
+function deleteNode(id) {
+  if (!confirm('このノードと子をすべて削除しますか？')) return;
+  const parentArr = findParentArr(id, nodes) || nodes;
+  deleteNodeById(id, parentArr === nodes ? nodes : parentArr);
+  deleteNodeById(id, nodes);
+  render(); saveToDrive();
+}
+
+// ══════════════════════
+//   FORM
+// ══════════════════════
+function openForm(parentId) {
+  formParentId = parentId;
+  formType = 'single'; formPriority = 'B';
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-note').value = '';
+  document.getElementById('f-interval').value = '';
+  document.getElementById('f-interval-wrap').style.display = 'none';
+  refreshSeg();
+
+  if (parentId) {
+    const parent = findNode(parentId, nodes);
+    document.getElementById('form-subtitle').textContent = '親: ' + (parent ? parent.title : '');
+  } else {
+    document.getElementById('form-subtitle').textContent = 'ルートに追加';
+  }
+
+  document.getElementById('form-overlay').classList.add('open');
+  document.getElementById('form-sheet').classList.add('open');
+  setTimeout(() => document.getElementById('f-title').focus(), 300);
+}
+
+function closeForm() {
+  document.getElementById('form-overlay').classList.remove('open');
+  document.getElementById('form-sheet').classList.remove('open');
+}
+
+function selectSeg(axis, val) {
+  if (axis === 'type') {
+    formType = val;
+    document.getElementById('f-interval-wrap').style.display = val === 'recurring' ? 'block' : 'none';
+  }
+  if (axis === 'priority') formPriority = val;
+  refreshSeg();
+}
+
+function refreshSeg() {
+  document.querySelectorAll('#seg-type .seg-btn').forEach(b => {
+    b.className = 'seg-btn' + (b.dataset.val === formType ? ' sel-' + formType : '');
+  });
+  document.querySelectorAll('#seg-priority .seg-btn').forEach(b => {
+    b.className = 'seg-btn' + (b.dataset.val === formPriority ? ' sel-' + formPriority : '');
+  });
+}
+
+function submitNode() {
+  const title = document.getElementById('f-title').value.trim();
+  if (!title) { document.getElementById('f-title').focus(); return; }
+
+  const node = {
+    id: makeId(), title,
+    type: formType, priority: formPriority,
+    note: document.getElementById('f-note').value.trim() || null,
+    interval: document.getElementById('f-interval').value.trim() || null,
+    done: false, expanded: true, children: [],
+    createdAt: Date.now(),
+  };
+
+  if (formParentId) {
+    const parent = findNode(formParentId, nodes);
+    if (parent) { parent.children = parent.children || []; parent.children.push(node); parent.expanded = true; }
+  } else {
+    nodes.push(node);
+  }
+
+  closeForm();
+  if (currentView !== 'tree') switchView('tree');
+  else render();
+  saveToDrive();
+}
+
+// ══════════════════════
+//   MENU
+// ══════════════════════
+function openMenu() {
+  document.getElementById('menu-overlay').classList.add('open');
+  document.getElementById('menu-sheet').classList.add('open');
+}
+function closeMenu() {
+  document.getElementById('menu-overlay').classList.remove('open');
+  document.getElementById('menu-sheet').classList.remove('open');
+}
+
+// ══════════════════════
+//   KEYBOARD
+// ══════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeForm(); closeMenu(); }
+  if (e.key === 'Enter' && e.ctrlKey) submitNode();
+});
+
+// ══════════════════════
+//   INIT
+// ══════════════════════
+window.onload = () => {
+  const wait = setInterval(() => {
+    if (window.google?.accounts?.oauth2) {
+      clearInterval(wait);
+      initGIS();
+    }
+  }, 100);
+};
+</script>
+</body>
+</html>
