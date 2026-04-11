@@ -17,10 +17,10 @@
   --muted: #6b6b80;
   --accent: #7c6aff;
   --accent-dim: #7c6aff22;
-  --a: #ff6b6b;
-  --b: #ffd166;
-  --c: #06d6a0;
-  --d: #4a9eff;
+  --a: #ff6b6b; --a-dim: #ff6b6b18;
+  --b: #ffd166; --b-dim: #ffd16618;
+  --c: #06d6a0; --c-dim: #06d6a018;
+  --d: #4a9eff; --d-dim: #4a9eff18;
   --single: #a78bfa;
   --project: #f59e0b;
   --recur: #34d399;
@@ -33,145 +33,155 @@
 html, body { height: 100%; overflow: hidden; }
 body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); font-size: 15px; }
 
+/* HEADER */
 .header {
-  position: fixed; top: 0; left: 0; right: 0;
-  height: var(--header-h);
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center;
-  padding: 0 16px; gap: 10px; z-index: 10;
+  position: fixed; top: 0; left: 0; right: 0; height: var(--header-h);
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 16px; gap: 10px; z-index: 10;
 }
-.header-title {
-  flex: 1;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px; color: var(--muted);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
+.header-title { flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--muted); }
+.sync-status { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); flex-shrink: 0; }
+.sync-status.ok { color: var(--c); } .sync-status.err { color: var(--a); } .sync-status.busy { color: var(--b); }
 .icon-btn {
-  width: 36px; height: 36px; border-radius: 8px;
-  border: 1px solid var(--border); background: none; color: var(--muted);
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  font-size: 18px; transition: all .15s; flex-shrink: 0;
+  width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border);
+  background: none; color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
 }
 .icon-btn:active { background: var(--surface2); }
 
-.sync-status {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px; color: var(--muted);
-  flex-shrink: 0;
-}
-.sync-status.ok   { color: var(--c); }
-.sync-status.err  { color: var(--a); }
-.sync-status.busy { color: var(--b); }
-
-.filter-bar {
+/* MAIN CONTENT AREA */
+.content {
   position: fixed; top: var(--header-h); left: 0; right: 0;
-  height: 44px; background: var(--bg);
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 6px;
-  padding: 0 14px; overflow-x: auto; scrollbar-width: none; z-index: 9;
-}
-.filter-bar::-webkit-scrollbar { display: none; }
-
-.chip {
-  flex-shrink: 0; padding: 5px 12px; border-radius: 20px;
-  border: 1px solid var(--border); background: none; color: var(--muted);
-  font-family: 'Noto Sans JP', sans-serif; font-size: 12px;
-  cursor: pointer; display: flex; align-items: center; gap: 5px;
-  transition: all .15s; white-space: nowrap;
-}
-.chip:active { opacity: .7; }
-.chip.active { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
-.chip-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.chip-count { font-family: 'JetBrains Mono', monospace; font-size: 10px; opacity: .7; }
-
-.task-list {
-  position: fixed;
-  top: calc(var(--header-h) + 44px); left: 0; right: 0;
   bottom: calc(var(--tab-h) + var(--safe-bottom));
-  overflow-y: auto; padding: 10px 12px 16px;
-  display: flex; flex-direction: column; gap: 7px;
-  -webkit-overflow-scrolling: touch;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
 }
-.task-list::-webkit-scrollbar { display: none; }
+.content::-webkit-scrollbar { display: none; }
 
-.task-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 12px; padding: 14px 14px 14px 12px;
-  display: flex; align-items: flex-start; gap: 12px;
+/* ══════════════════════════
+   TREE VIEW
+══════════════════════════ */
+.tree-view { padding: 10px 12px 24px; }
+
+.tree-node {
+  border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--border); background: var(--surface);
+  margin-bottom: 7px;
+}
+
+.node-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 12px 12px 10px;
   position: relative; overflow: hidden;
 }
-.task-card.done { opacity: .38; }
 
-.quad-bar {
-  position: absolute; left: 0; top: 0; bottom: 0;
-  width: 4px; border-radius: 12px 0 0 12px;
+.node-bar {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
 }
-.bar-a { background: var(--a); }
-.bar-b { background: var(--b); }
-.bar-c { background: var(--c); }
-.bar-d { background: var(--d); }
+.bar-a { background: var(--a); } .bar-b { background: var(--b); }
+.bar-c { background: var(--c); } .bar-d { background: var(--d); }
 
-.task-check {
-  width: 26px; height: 26px; border: 2px solid var(--border);
-  border-radius: 8px; cursor: pointer; flex-shrink: 0;
+.node-expand {
+  width: 24px; height: 24px; border-radius: 6px; border: none;
+  background: var(--surface2); color: var(--muted); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: all .15s; touch-action: manipulation;
+  font-size: 11px; flex-shrink: 0; touch-action: manipulation;
+  transition: transform .15s;
 }
-.task-check.checked { background: var(--accent); border-color: var(--accent); }
-.task-check.checked::after { content: '✓'; color: white; font-size: 13px; font-weight: 700; }
+.node-expand.expanded { transform: rotate(90deg); }
+.node-expand.leaf { background: none; color: transparent; cursor: default; }
 
-.task-body { flex: 1; min-width: 0; padding-left: 4px; }
-.task-title { font-size: 15px; line-height: 1.45; word-break: break-all; }
-.done .task-title { text-decoration: line-through; }
-
-.task-meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; align-items: center; }
-
-.tag {
-  font-family: 'JetBrains Mono', monospace; font-size: 10px;
-  padding: 2px 7px; border-radius: 4px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: .04em;
+.node-check {
+  width: 22px; height: 22px; border: 2px solid var(--border);
+  border-radius: 6px; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  touch-action: manipulation; transition: all .15s;
 }
-.tag-single    { background: #a78bfa22; color: var(--single); }
-.tag-project   { background: #f59e0b22; color: var(--project); }
-.tag-recurring { background: #34d39922; color: var(--recur); }
+.node-check.checked { background: var(--accent); border-color: var(--accent); }
+.node-check.checked::after { content: '✓'; color: white; font-size: 11px; font-weight: 700; }
 
-.quad-badge {
-  font-family: 'JetBrains Mono', monospace; font-size: 10px;
-  padding: 2px 7px; border-radius: 4px; font-weight: 600;
+.node-body { flex: 1; min-width: 0; }
+.node-title { font-size: 14px; line-height: 1.4; word-break: break-all; }
+.node-done .node-title { text-decoration: line-through; opacity: .5; }
+
+.node-meta { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+.badge {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  padding: 2px 6px; border-radius: 3px; font-weight: 600; text-transform: uppercase;
 }
 .badge-a { background: #ff6b6b22; color: var(--a); }
 .badge-b { background: #ffd16622; color: var(--b); }
 .badge-c { background: #06d6a022; color: var(--c); }
 .badge-d { background: #4a9eff22; color: var(--d); }
+.badge-single { background: #a78bfa22; color: var(--single); }
+.badge-project { background: #f59e0b22; color: var(--project); }
+.badge-recurring { background: #34d39922; color: var(--recur); }
 
-.task-note { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+.node-note { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
 
-.steps-list { margin-top: 9px; display: flex; flex-direction: column; gap: 1px; }
-.step-item {
+.node-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.node-act-btn {
+  width: 28px; height: 28px; border-radius: 7px; border: none;
+  background: none; color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; touch-action: manipulation; transition: all .15s;
+}
+.node-act-btn:active { background: var(--surface2); }
+.node-act-btn.add-child { color: var(--accent); }
+.node-act-btn.del { color: var(--border); }
+.node-act-btn.del:active { color: var(--a); }
+
+/* children indent */
+.node-children {
+  border-top: 1px solid var(--border);
+  padding: 6px 0 6px 16px;
+  display: flex; flex-direction: column; gap: 6px;
+  background: var(--bg);
+}
+
+.node-children .tree-node { margin-bottom: 0; }
+
+/* ══════════════════════════
+   MATRIX VIEW
+══════════════════════════ */
+.matrix-view { padding: 10px 12px 24px; display: flex; flex-direction: column; gap: 10px; }
+
+.quad-section { border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+
+.quad-header {
+  padding: 10px 14px; display: flex; align-items: center; gap: 10px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600;
+}
+.quad-header-a { background: var(--a-dim); color: var(--a); border-bottom: 1px solid #ff6b6b33; }
+.quad-header-b { background: var(--b-dim); color: var(--b); border-bottom: 1px solid #ffd16633; }
+.quad-header-c { background: var(--c-dim); color: var(--c); border-bottom: 1px solid #06d6a033; }
+.quad-header-d { background: var(--d-dim); color: var(--d); border-bottom: 1px solid #4a9eff33; }
+.quad-header-done { background: var(--surface2); color: var(--muted); border-bottom: 1px solid var(--border); }
+.quad-label { flex: 1; }
+.quad-count { opacity: .6; font-size: 10px; }
+
+.matrix-item {
   display: flex; align-items: center; gap: 10px;
-  font-size: 13px; color: var(--muted);
-  padding: 7px 0; cursor: pointer;
-  border-bottom: 1px solid var(--border);
-  touch-action: manipulation;
+  padding: 11px 14px; border-bottom: 1px solid var(--border);
+  background: var(--surface);
 }
-.step-item:last-child { border-bottom: none; }
-.step-check {
+.matrix-item:last-child { border-bottom: none; }
+
+.matrix-check {
   width: 20px; height: 20px; border: 1.5px solid var(--border);
-  border-radius: 5px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center; font-size: 11px;
+  border-radius: 5px; flex-shrink: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 10px;
+  touch-action: manipulation; transition: all .15s;
 }
-.step-check.done-step { background: var(--muted); border-color: var(--muted); color: var(--bg); }
-.steps-progress { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); }
+.matrix-check.checked { background: var(--accent); border-color: var(--accent); color: white; }
 
-.task-del {
-  background: none; border: none; color: var(--border);
-  cursor: pointer; font-size: 20px; padding: 2px 4px;
-  line-height: 1; flex-shrink: 0; align-self: flex-start;
-  touch-action: manipulation;
-}
-.task-del:active { color: var(--a); }
+.matrix-body { flex: 1; min-width: 0; }
+.matrix-title { font-size: 14px; line-height: 1.4; word-break: break-all; }
+.matrix-path { font-size: 10px; color: var(--muted); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+.matrix-done .matrix-title { text-decoration: line-through; opacity: .5; }
 
+/* ══════════════════════════
+   TAB BAR
+══════════════════════════ */
 .tabbar {
   position: fixed; bottom: 0; left: 0; right: 0;
   height: calc(var(--tab-h) + var(--safe-bottom));
@@ -192,7 +202,6 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
   height: 2px; background: var(--accent); border-radius: 0 0 2px 2px;
 }
 .tab-icon { font-size: 20px; line-height: 1; }
-
 .fab {
   width: 52px; height: 52px; border-radius: 16px;
   background: var(--accent); border: none; color: white; font-size: 26px;
@@ -202,13 +211,13 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 }
 .fab:active { transform: scale(.93); }
 
+/* ══════════════════════════
+   BOTTOM SHEET
+══════════════════════════ */
 .sheet-overlay {
-  position: fixed; inset: 0; background: #00000088; z-index: 30;
-  display: none; animation: fadeIn .2s;
+  position: fixed; inset: 0; background: #00000088; z-index: 30; display: none;
 }
 .sheet-overlay.open { display: block; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
 .sheet {
   position: fixed; bottom: 0; left: 0; right: 0;
   background: var(--surface); border-radius: 20px 20px 0 0;
@@ -220,15 +229,13 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 }
 .sheet.open { transform: translateY(0); transition: transform .3s cubic-bezier(.33,1,.68,1); }
 .sheet-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 12px auto 16px; }
-.sheet-title { font-size: 16px; font-weight: 500; margin-bottom: 16px; }
+.sheet-title { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
+.sheet-subtitle { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
 
 .field-label {
-  font-size: 11px; color: var(--muted);
-  font-family: 'JetBrains Mono', monospace;
-  letter-spacing: .08em; text-transform: uppercase;
-  margin-bottom: 6px; margin-top: 14px;
+  font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace;
+  letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; margin-top: 14px;
 }
-
 .f-input, .f-textarea {
   width: 100%; background: var(--bg); border: 1px solid var(--border);
   color: var(--text); border-radius: 10px; padding: 12px 14px;
@@ -257,26 +264,12 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 .sheet-actions { display: flex; gap: 10px; margin-top: 20px; }
 .btn {
   flex: 1; padding: 14px; border-radius: 12px; border: none;
-  cursor: pointer; font-size: 15px;
-  font-family: 'Noto Sans JP', sans-serif; font-weight: 500;
-  transition: opacity .15s; touch-action: manipulation;
+  cursor: pointer; font-size: 15px; font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 500; transition: opacity .15s; touch-action: manipulation;
 }
 .btn:active { opacity: .75; }
 .btn-primary { background: var(--accent); color: white; }
 .btn-ghost { background: var(--surface2); color: var(--muted); }
-
-.step-editor-row { display: flex; gap: 8px; align-items: center; margin-bottom: 7px; }
-.btn-del-step {
-  background: none; border: none; color: var(--muted);
-  cursor: pointer; font-size: 20px; padding: 0 4px; line-height: 1;
-  touch-action: manipulation;
-}
-.btn-add-step {
-  width: 100%; padding: 10px; border-radius: 9px;
-  border: 1px dashed var(--border); background: none; color: var(--muted);
-  font-family: 'Noto Sans JP', sans-serif; font-size: 13px;
-  cursor: pointer; transition: all .15s; touch-action: manipulation; margin-top: 4px;
-}
 
 .menu-item {
   display: flex; align-items: center; gap: 14px;
@@ -286,22 +279,12 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 .menu-item:last-child { border-bottom: none; }
 .menu-item:active { opacity: .6; }
 .menu-icon { font-size: 20px; width: 28px; text-align: center; }
-.menu-item.danger { color: var(--a); }
 
-.empty {
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 10px; color: var(--muted); font-size: 13px; padding: 60px 0;
-}
-.empty-icon { font-size: 40px; opacity: .3; }
-
-/* ログイン画面 */
+/* LOGIN */
 .login-screen {
-  position: fixed; inset: 0;
-  display: flex; flex-direction: column;
+  position: fixed; inset: 0; display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  gap: 20px; background: var(--bg); z-index: 100;
-  padding: 32px;
+  gap: 20px; background: var(--bg); z-index: 100; padding: 32px;
 }
 .login-screen.hidden { display: none; }
 .login-title { font-size: 22px; font-weight: 500; }
@@ -312,12 +295,17 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
   font-size: 15px; font-family: 'Noto Sans JP', sans-serif;
   font-weight: 500; cursor: pointer; touch-action: manipulation;
 }
-.login-btn:active { opacity: .8; }
+
+/* EMPTY */
+.empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; color: var(--muted); font-size: 13px; padding: 60px 0;
+}
+.empty-icon { font-size: 40px; opacity: .3; }
 </style>
 </head>
 <body>
 
-<!-- ログイン画面 -->
 <div class="login-screen" id="login-screen">
   <div class="login-title">タスク管理</div>
   <div class="login-sub">Googleアカウントでログインすると<br>タスクがドライブに自動保存されます</div>
@@ -325,32 +313,20 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 </div>
 
 <header class="header">
-  <span class="header-title" id="header-label">すべてのタスク</span>
+  <span class="header-title" id="header-title">ツリー</span>
   <span class="sync-status" id="sync-status"></span>
   <button class="icon-btn" onclick="openMenu()">⋯</button>
 </header>
 
-<div class="filter-bar">
-  <button class="chip active" id="chip-all" onclick="setFilter('all')">すべて<span class="chip-count" id="cnt-all">0</span></button>
-  <button class="chip" id="chip-A" onclick="setFilter('A')"><span class="chip-dot" style="background:var(--a)"></span>A<span class="chip-count" id="cnt-A">0</span></button>
-  <button class="chip" id="chip-B" onclick="setFilter('B')"><span class="chip-dot" style="background:var(--b)"></span>B<span class="chip-count" id="cnt-B">0</span></button>
-  <button class="chip" id="chip-C" onclick="setFilter('C')"><span class="chip-dot" style="background:var(--c)"></span>C<span class="chip-count" id="cnt-C">0</span></button>
-  <button class="chip" id="chip-D" onclick="setFilter('D')"><span class="chip-dot" style="background:var(--d)"></span>D<span class="chip-count" id="cnt-D">0</span></button>
-  <button class="chip" id="chip-single" onclick="setFilter('single')"><span class="chip-dot" style="background:var(--single)"></span>単発<span class="chip-count" id="cnt-single">0</span></button>
-  <button class="chip" id="chip-project" onclick="setFilter('project')"><span class="chip-dot" style="background:var(--project)"></span>PJ<span class="chip-count" id="cnt-project">0</span></button>
-  <button class="chip" id="chip-recurring" onclick="setFilter('recurring')"><span class="chip-dot" style="background:var(--recur)"></span>定期<span class="chip-count" id="cnt-recurring">0</span></button>
-  <button class="chip" id="chip-done" onclick="setFilter('done')"><span class="chip-dot" style="background:var(--border)"></span>完了<span class="chip-count" id="cnt-done">0</span></button>
-</div>
-
-<div class="task-list" id="task-list"></div>
+<div class="content" id="content"></div>
 
 <nav class="tabbar">
-  <button class="tab-btn active" id="tab-tasks" onclick="setFilter('all')">
-    <span class="tab-icon">☑</span>タスク
+  <button class="tab-btn active" id="tab-tree" onclick="switchView('tree')">
+    <span class="tab-icon">⌥</span>ツリー
   </button>
-  <button class="fab" onclick="openForm()">＋</button>
-  <button class="tab-btn" id="tab-done-tab" onclick="setFilter('done')">
-    <span class="tab-icon">✓</span>完了
+  <button class="fab" onclick="openForm(null)">＋</button>
+  <button class="tab-btn" id="tab-matrix" onclick="switchView('matrix')">
+    <span class="tab-icon">⊞</span>マトリクス
   </button>
 </nav>
 
@@ -358,15 +334,19 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 <div class="sheet-overlay" id="form-overlay" onclick="closeForm()"></div>
 <div class="sheet" id="form-sheet">
   <div class="sheet-handle"></div>
-  <div class="sheet-title">タスクを追加</div>
-  <div class="field-label">タスク名</div>
-  <input class="f-input" id="f-title" placeholder="例：カモミールティーを買う" />
+  <div class="sheet-title" id="form-title">ノードを追加</div>
+  <div class="sheet-subtitle" id="form-subtitle"></div>
+
+  <div class="field-label">タイトル</div>
+  <input class="f-input" id="f-title" placeholder="例：研究 / キクラゲ引き継ぎ完了" />
+
   <div class="field-label">種別</div>
   <div class="seg-group" id="seg-type">
     <button class="seg-btn sel-single" data-val="single" onclick="selectSeg('type','single')">単発</button>
     <button class="seg-btn" data-val="project" onclick="selectSeg('type','project')">プロジェクト</button>
     <button class="seg-btn" data-val="recurring" onclick="selectSeg('type','recurring')">定期</button>
   </div>
+
   <div class="field-label">優先度</div>
   <div class="seg-group" id="seg-priority">
     <button class="seg-btn" data-val="A" onclick="selectSeg('priority','A')">A<br><span style="font-size:10px;opacity:.7">緊急×重要</span></button>
@@ -374,20 +354,18 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
     <button class="seg-btn" data-val="C" onclick="selectSeg('priority','C')">C<br><span style="font-size:10px;opacity:.7">緊急</span></button>
     <button class="seg-btn" data-val="D" onclick="selectSeg('priority','D')">D<br><span style="font-size:10px;opacity:.7">その他</span></button>
   </div>
+
   <div class="field-label">メモ（任意）</div>
   <textarea class="f-textarea" id="f-note" placeholder="補足など"></textarea>
+
   <div id="f-interval-wrap" style="display:none">
     <div class="field-label">繰り返し</div>
-    <input class="f-input" id="f-interval" placeholder="例：毎週月曜、毎月1日" />
+    <input class="f-input" id="f-interval" placeholder="例：毎週月曜" />
   </div>
-  <div id="f-steps-wrap" style="display:none">
-    <div class="field-label">ステップ</div>
-    <div id="steps-editor"></div>
-    <button class="btn-add-step" onclick="addStepInput()">＋ ステップを追加</button>
-  </div>
+
   <div class="sheet-actions">
     <button class="btn btn-ghost" onclick="closeForm()">キャンセル</button>
-    <button class="btn btn-primary" onclick="submitTask()">追加する</button>
+    <button class="btn btn-primary" onclick="submitNode()">追加する</button>
   </div>
 </div>
 
@@ -411,25 +389,25 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 const CLIENT_ID = '741303706363-kgdmf1pot1c86sv0poncpiehmcop81d9.apps.googleusercontent.com';
 const SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
 const FILE_NAME = 'tasks.json';
-const LS_KEY = 'sasami_tasks_v2';
+const LS_KEY = 'sasami_tasks_v3';
 const LS_TOKEN = 'sasami_gtoken';
 
-let tasks = [];
+// ツリー構造: nodes = [{id, title, type, priority, note, interval, done, expanded, children:[...]}, ...]
+let nodes = [];
 let accessToken = null;
 let driveFileId = null;
 let tokenClient = null;
-let currentFilter = 'all';
+let currentView = 'tree';
+let formParentId = null; // nullなら root
 let formType = 'single';
 let formPriority = 'B';
-let stepInputs = [];
 
 // ══════════════════════
-//   GOOGLE IDENTITY
+//   GOOGLE AUTH
 // ══════════════════════
 function initGIS() {
   tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
-    scope: SCOPE,
+    client_id: CLIENT_ID, scope: SCOPE,
     callback: async (resp) => {
       if (resp.error) { setSyncStatus('err', 'ログイン失敗'); return; }
       accessToken = resp.access_token;
@@ -438,14 +416,11 @@ function initGIS() {
       await syncFromDrive();
     },
   });
-
-  // 保存済みトークンがあれば自動でリストア試行
   const saved = localStorage.getItem(LS_TOKEN);
   if (saved) {
     accessToken = saved;
     document.getElementById('login-screen').classList.add('hidden');
     syncFromDrive().catch(() => {
-      // トークン期限切れの場合はログイン画面へ
       accessToken = null;
       localStorage.removeItem(LS_TOKEN);
       document.getElementById('login-screen').classList.remove('hidden');
@@ -453,10 +428,7 @@ function initGIS() {
   }
 }
 
-function signIn() {
-  tokenClient.requestAccessToken({ prompt: 'consent' });
-}
-
+function signIn() { tokenClient.requestAccessToken({ prompt: 'consent' }); }
 function signOut() {
   if (accessToken) google.accounts.oauth2.revoke(accessToken);
   accessToken = null;
@@ -470,25 +442,15 @@ function signOut() {
 async function driveReq(method, path, params, body) {
   const url = new URL('https://www.googleapis.com' + path);
   if (params) Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
-  const opts = {
-    method,
-    headers: { Authorization: 'Bearer ' + accessToken },
-  };
-  if (body) {
-    opts.headers['Content-Type'] = 'application/json';
-    opts.body = JSON.stringify(body);
-  }
+  const opts = { method, headers: { Authorization: 'Bearer ' + accessToken } };
+  if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
   const res = await fetch(url, opts);
   if (res.status === 401) throw new Error('401');
   return res;
 }
 
 async function findFile() {
-  const res = await driveReq('GET', '/drive/v3/files', {
-    spaces: 'appDataFolder',
-    q: `name='${FILE_NAME}'`,
-    fields: 'files(id)',
-  });
+  const res = await driveReq('GET', '/drive/v3/files', { spaces: 'appDataFolder', q: `name='${FILE_NAME}'`, fields: 'files(id)' });
   const data = await res.json();
   return data.files?.[0]?.id || null;
 }
@@ -499,29 +461,21 @@ async function readFile(fileId) {
 }
 
 async function createFile(content) {
-  // multipart upload
-  const boundary = 'mytasks_boundary';
+  const boundary = 'boundary_tasks';
   const meta = JSON.stringify({ name: FILE_NAME, parents: ['appDataFolder'] });
   const body = `--${boundary}\r\nContent-Type: application/json\r\n\r\n${meta}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(content)}\r\n--${boundary}--`;
   const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
     method: 'POST',
-    headers: {
-      Authorization: 'Bearer ' + accessToken,
-      'Content-Type': `multipart/related; boundary=${boundary}`,
-    },
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': `multipart/related; boundary=${boundary}` },
     body,
   });
-  const data = await res.json();
-  return data.id;
+  return (await res.json()).id;
 }
 
 async function updateFile(fileId, content) {
   await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
     method: 'PATCH',
-    headers: {
-      Authorization: 'Bearer ' + accessToken,
-      'Content-Type': 'application/json',
-    },
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
     body: JSON.stringify(content),
   });
 }
@@ -531,50 +485,41 @@ async function syncFromDrive() {
   try {
     driveFileId = await findFile();
     if (driveFileId) {
-      tasks = await readFile(driveFileId);
+      nodes = await readFile(driveFileId);
     } else {
-      // 初回：ローカルのデータがあれば移行
       const local = localStorage.getItem(LS_KEY);
-      tasks = local ? JSON.parse(local) : [];
-      driveFileId = await createFile(tasks);
+      nodes = local ? JSON.parse(local) : [];
+      driveFileId = await createFile(nodes);
     }
-    localStorage.setItem(LS_KEY, JSON.stringify(tasks));
+    localStorage.setItem(LS_KEY, JSON.stringify(nodes));
     setSyncStatus('ok', '同期済み');
     render();
   } catch(e) {
     setSyncStatus('err', '同期失敗');
-    // オフライン時はローカルキャッシュで動作
     const local = localStorage.getItem(LS_KEY);
-    if (local) tasks = JSON.parse(local);
+    if (local) nodes = JSON.parse(local);
     render();
   }
 }
 
 async function saveToDrive() {
-  localStorage.setItem(LS_KEY, JSON.stringify(tasks));
+  localStorage.setItem(LS_KEY, JSON.stringify(nodes));
   if (!accessToken || !driveFileId) return;
   setSyncStatus('busy', '保存中…');
   try {
-    await updateFile(driveFileId, tasks);
+    await updateFile(driveFileId, nodes);
     setSyncStatus('ok', '保存済み');
-  } catch {
-    setSyncStatus('err', '保存失敗');
-  }
+  } catch { setSyncStatus('err', '保存失敗'); }
 }
 
 async function forceSyncToDrive() {
   setSyncStatus('busy', '保存中…');
   try {
     if (!driveFileId) driveFileId = await findFile();
-    if (driveFileId) {
-      await updateFile(driveFileId, tasks);
-    } else {
-      driveFileId = await createFile(tasks);
-    }
+    if (driveFileId) await updateFile(driveFileId, nodes);
+    else driveFileId = await createFile(nodes);
     setSyncStatus('ok', '保存済み');
-  } catch {
-    setSyncStatus('err', '保存失敗');
-  }
+  } catch { setSyncStatus('err', '保存失敗'); }
 }
 
 function setSyncStatus(type, msg) {
@@ -584,95 +529,183 @@ function setSyncStatus(type, msg) {
 }
 
 // ══════════════════════
-//   FILTER
+//   TREE UTILS
 // ══════════════════════
-const LABELS = {
-  all:'すべてのタスク', A:'A ― 緊急×重要', B:'B ― 重要',
-  C:'C ― 緊急', D:'D ― その他',
-  single:'単発タスク', project:'プロジェクト', recurring:'定期タスク', done:'完了済み'
-};
+function makeId() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 
-function setFilter(f) {
-  currentFilter = f;
-  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-  document.getElementById('chip-' + f)?.classList.add('active');
-  document.getElementById('header-label').textContent = LABELS[f] || f;
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  if (f === 'done') document.getElementById('tab-done-tab').classList.add('active');
-  else document.getElementById('tab-tasks').classList.add('active');
-  render();
+function findNode(id, arr) {
+  for (const n of arr) {
+    if (n.id === id) return n;
+    const found = findNode(id, n.children || []);
+    if (found) return found;
+  }
+  return null;
 }
 
-function filteredTasks() {
-  if (currentFilter === 'all')  return tasks.filter(t => !t.done);
-  if (currentFilter === 'done') return tasks.filter(t => t.done);
-  if ('ABCD'.includes(currentFilter)) return tasks.filter(t => !t.done && t.priority === currentFilter);
-  return tasks.filter(t => !t.done && t.type === currentFilter);
+function findParentArr(id, arr) {
+  for (const n of arr) {
+    if ((n.children || []).some(c => c.id === id)) return n.children;
+    const found = findParentArr(id, n.children || []);
+    if (found) return found;
+  }
+  return null;
+}
+
+function deleteNodeById(id, arr) {
+  const idx = arr.findIndex(n => n.id === id);
+  if (idx !== -1) { arr.splice(idx, 1); return true; }
+  for (const n of arr) { if (deleteNodeById(id, n.children || [])) return true; }
+  return false;
+}
+
+// ノードのパスを文字列で返す（マトリクス表示用）
+function getPath(id, arr, path) {
+  for (const n of arr) {
+    const cur = [...path, n.title];
+    if (n.id === id) return cur.slice(0, -1);
+    const found = getPath(id, n.children || [], cur);
+    if (found !== null) return found;
+  }
+  return null;
+}
+
+// 全ノードをフラットに返す（done含む）
+function flattenNodes(arr, acc) {
+  for (const n of arr) {
+    acc.push(n);
+    flattenNodes(n.children || [], acc);
+  }
+  return acc;
+}
+
+// ══════════════════════
+//   VIEW SWITCH
+// ══════════════════════
+function switchView(v) {
+  currentView = v;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + v).classList.add('active');
+  document.getElementById('header-title').textContent = v === 'tree' ? 'ツリー' : 'マトリクス';
+  render();
 }
 
 // ══════════════════════
 //   RENDER
 // ══════════════════════
-function updateCounts() {
-  const active = tasks.filter(t => !t.done);
-  document.getElementById('cnt-all').textContent = active.length;
-  'ABCD'.split('').forEach(q => {
-    document.getElementById('cnt-' + q).textContent = active.filter(t => t.priority === q).length;
-  });
-  ['single','project','recurring'].forEach(ty => {
-    document.getElementById('cnt-' + ty).textContent = active.filter(t => t.type === ty).length;
-  });
-  document.getElementById('cnt-done').textContent = tasks.filter(t => t.done).length;
-}
-
 function render() {
-  updateCounts();
-  const list = document.getElementById('task-list');
-  const items = filteredTasks();
-  if (!items.length) {
-    list.innerHTML = `<div class="empty"><div class="empty-icon">◎</div><div>タスクなし</div></div>`;
-    return;
+  const el = document.getElementById('content');
+  if (currentView === 'tree') {
+    el.innerHTML = `<div class="tree-view">${renderTreeNodes(nodes, 0)}</div>`;
+    if (!nodes.length) el.innerHTML = `<div class="tree-view"><div class="empty"><div class="empty-icon">◎</div><div>＋でノードを追加</div></div></div>`;
+  } else {
+    el.innerHTML = renderMatrix();
   }
-  list.innerHTML = items.map(taskCard).join('');
 }
 
-function taskCard(t) {
-  const barCls   = 'bar-'   + t.priority.toLowerCase();
-  const badgeCls = 'badge-' + t.priority.toLowerCase();
-  const typeCls  = 'tag-'   + t.type;
-  const typeLabel = { single:'単発', project:'プロジェクト', recurring:'定期' }[t.type];
-  const doneClass  = t.done ? 'done' : '';
-  const checkClass = t.done ? 'checked' : '';
+function renderTreeNodes(arr, depth) {
+  return arr.map(n => renderTreeNode(n, depth)).join('');
+}
 
-  let extra = '';
-  if (t.note) extra += `<div class="task-note">${esc(t.note)}</div>`;
-  if (t.type === 'recurring' && t.interval)
-    extra += `<div class="task-note" style="color:var(--recur)">↻ ${esc(t.interval)}</div>`;
-  if (t.type === 'project' && t.steps?.length) {
-    const done = t.steps.filter(s => s.done).length;
-    const rows = t.steps.map((s, si) => `
-      <div class="step-item" onclick="toggleStep('${t.id}',${si})">
-        <div class="step-check ${s.done ? 'done-step' : ''}">${s.done ? '✓' : ''}</div>
-        <span style="${s.done ? 'text-decoration:line-through;opacity:.5' : ''}">${esc(s.text)}</span>
-      </div>`).join('');
-    extra += `<div class="task-meta"><span class="steps-progress">${done}/${t.steps.length} 完了</span></div>
-              <div class="steps-list">${rows}</div>`;
-  }
+function renderTreeNode(n, depth) {
+  const hasChildren = (n.children || []).length > 0;
+  const expanded = n.expanded !== false;
+  const barCls = 'bar-' + n.priority.toLowerCase();
+  const badgePriority = `badge-${n.priority.toLowerCase()}`;
+  const badgeType = `badge-${n.type}`;
+  const typeLabel = { single:'単発', project:'PJ', recurring:'定期' }[n.type];
+  const doneClass = n.done ? 'node-done' : '';
+
+  const expandIcon = hasChildren
+    ? `<button class="node-expand ${expanded ? 'expanded' : ''}" onclick="toggleExpand('${n.id}')">▶</button>`
+    : `<button class="node-expand leaf">·</button>`;
+
+  const noteHtml = n.note ? `<div class="node-note">${esc(n.note)}</div>` : '';
+  const recurHtml = n.type === 'recurring' && n.interval ? `<div class="node-note" style="color:var(--recur)">↻ ${esc(n.interval)}</div>` : '';
+
+  const childrenHtml = hasChildren && expanded
+    ? `<div class="node-children">${renderTreeNodes(n.children, depth + 1)}</div>`
+    : '';
 
   return `
-    <div class="task-card ${doneClass}">
-      <div class="quad-bar ${barCls}"></div>
-      <div class="task-check ${checkClass}" onclick="toggleTask('${t.id}')"></div>
-      <div class="task-body">
-        <div class="task-title">${esc(t.title)}</div>
-        <div class="task-meta">
-          <span class="tag ${typeCls}">${typeLabel}</span>
-          <span class="quad-badge ${badgeCls}">${t.priority}</span>
+    <div class="tree-node" id="node-${n.id}">
+      <div class="node-row ${doneClass}">
+        <div class="node-bar ${barCls}"></div>
+        ${expandIcon}
+        <div class="node-check ${n.done ? 'checked' : ''}" onclick="toggleDone('${n.id}')"></div>
+        <div class="node-body">
+          <div class="node-title">${esc(n.title)}</div>
+          <div class="node-meta">
+            <span class="badge ${badgePriority}">${n.priority}</span>
+            <span class="badge ${badgeType}">${typeLabel}</span>
+          </div>
+          ${noteHtml}${recurHtml}
         </div>
-        ${extra}
+        <div class="node-actions">
+          <button class="node-act-btn add-child" onclick="openForm('${n.id}')" title="子を追加">＋</button>
+          <button class="node-act-btn del" onclick="deleteNode('${n.id}')" title="削除">×</button>
+        </div>
       </div>
-      <button class="task-del" onclick="deleteTask('${t.id}')">×</button>
+      ${childrenHtml}
     </div>`;
+}
+
+function renderMatrix() {
+  const all = flattenNodes(nodes, []);
+  const active = all.filter(n => !n.done);
+  const done   = all.filter(n => n.done);
+
+  const quads = [
+    { key: 'A', label: 'A ― 緊急×重要', cls: 'quad-header-a' },
+    { key: 'B', label: 'B ― 重要',       cls: 'quad-header-b' },
+    { key: 'C', label: 'C ― 緊急',       cls: 'quad-header-c' },
+    { key: 'D', label: 'D ― その他',     cls: 'quad-header-d' },
+  ];
+
+  let html = '<div class="matrix-view">';
+
+  for (const q of quads) {
+    const items = active.filter(n => n.priority === q.key);
+    if (!items.length) continue;
+    html += `<div class="quad-section">
+      <div class="quad-header ${q.cls}">
+        <span class="quad-label">${q.label}</span>
+        <span class="quad-count">${items.length}</span>
+      </div>`;
+    html += items.map(n => {
+      const path = getPath(n.id, nodes, []);
+      const pathStr = path && path.length ? path.join(' › ') : '';
+      return `
+        <div class="matrix-item">
+          <div class="matrix-check ${n.done ? 'checked' : ''}" onclick="toggleDone('${n.id}')">${n.done ? '✓' : ''}</div>
+          <div class="matrix-body">
+            <div class="matrix-title">${esc(n.title)}</div>
+            ${pathStr ? `<div class="matrix-path">${esc(pathStr)}</div>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+    html += `</div>`;
+  }
+
+  if (done.length) {
+    html += `<div class="quad-section">
+      <div class="quad-header quad-header-done">
+        <span class="quad-label">完了済み</span>
+        <span class="quad-count">${done.length}</span>
+      </div>`;
+    html += done.map(n => `
+      <div class="matrix-item matrix-done">
+        <div class="matrix-check checked" onclick="toggleDone('${n.id}')">✓</div>
+        <div class="matrix-body"><div class="matrix-title">${esc(n.title)}</div></div>
+      </div>`).join('');
+    html += `</div>`;
+  }
+
+  if (!active.length && !done.length) {
+    html += `<div class="empty"><div class="empty-icon">◎</div><div>タスクなし</div></div>`;
+  }
+
+  html += '</div>';
+  return html;
 }
 
 function esc(s) {
@@ -682,36 +715,47 @@ function esc(s) {
 // ══════════════════════
 //   ACTIONS
 // ══════════════════════
-function toggleTask(id) {
-  const t = tasks.find(t => t.id === id);
-  if (!t) return;
-  t.done = !t.done;
+function toggleExpand(id) {
+  const n = findNode(id, nodes);
+  if (!n) return;
+  n.expanded = n.expanded === false ? true : false;
   render(); saveToDrive();
 }
 
-function toggleStep(taskId, si) {
-  const t = tasks.find(t => t.id === taskId);
-  if (!t?.steps) return;
-  t.steps[si].done = !t.steps[si].done;
+function toggleDone(id) {
+  const n = findNode(id, nodes);
+  if (!n) return;
+  n.done = !n.done;
   render(); saveToDrive();
 }
 
-function deleteTask(id) {
-  if (!confirm('このタスクを削除しますか？')) return;
-  tasks = tasks.filter(t => t.id !== id);
+function deleteNode(id) {
+  if (!confirm('このノードと子をすべて削除しますか？')) return;
+  const parentArr = findParentArr(id, nodes) || nodes;
+  deleteNodeById(id, parentArr === nodes ? nodes : parentArr);
+  deleteNodeById(id, nodes);
   render(); saveToDrive();
 }
 
 // ══════════════════════
 //   FORM
 // ══════════════════════
-function openForm() {
-  formType = 'single'; formPriority = 'B'; stepInputs = [];
-  refreshSeg(); renderStepInputs();
+function openForm(parentId) {
+  formParentId = parentId;
+  formType = 'single'; formPriority = 'B';
   document.getElementById('f-title').value = '';
   document.getElementById('f-note').value = '';
   document.getElementById('f-interval').value = '';
-  updateFormFields();
+  document.getElementById('f-interval-wrap').style.display = 'none';
+  refreshSeg();
+
+  if (parentId) {
+    const parent = findNode(parentId, nodes);
+    document.getElementById('form-subtitle').textContent = '親: ' + (parent ? parent.title : '');
+  } else {
+    document.getElementById('form-subtitle').textContent = 'ルートに追加';
+  }
+
   document.getElementById('form-overlay').classList.add('open');
   document.getElementById('form-sheet').classList.add('open');
   setTimeout(() => document.getElementById('f-title').focus(), 300);
@@ -723,8 +767,11 @@ function closeForm() {
 }
 
 function selectSeg(axis, val) {
-  if (axis === 'type')     { formType = val; updateFormFields(); }
-  if (axis === 'priority') { formPriority = val; }
+  if (axis === 'type') {
+    formType = val;
+    document.getElementById('f-interval-wrap').style.display = val === 'recurring' ? 'block' : 'none';
+  }
+  if (axis === 'priority') formPriority = val;
   refreshSeg();
 }
 
@@ -737,39 +784,30 @@ function refreshSeg() {
   });
 }
 
-function updateFormFields() {
-  document.getElementById('f-interval-wrap').style.display = formType === 'recurring' ? 'block' : 'none';
-  document.getElementById('f-steps-wrap').style.display    = formType === 'project'   ? 'block' : 'none';
-}
-
-function addStepInput() { stepInputs.push(''); renderStepInputs(); }
-
-function renderStepInputs() {
-  document.getElementById('steps-editor').innerHTML = stepInputs.map((s, i) => `
-    <div class="step-editor-row">
-      <input class="f-input" value="${esc(s)}" oninput="stepInputs[${i}]=this.value"
-        placeholder="ステップ ${i+1}" style="flex:1;font-size:14px;padding:10px 12px" />
-      <button class="btn-del-step" onclick="removeStep(${i})">×</button>
-    </div>`).join('');
-}
-
-function removeStep(i) { stepInputs.splice(i, 1); renderStepInputs(); }
-
-function submitTask() {
+function submitNode() {
   const title = document.getElementById('f-title').value.trim();
   if (!title) { document.getElementById('f-title').focus(); return; }
-  const task = {
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2),
-    title, type: formType, priority: formPriority,
+
+  const node = {
+    id: makeId(), title,
+    type: formType, priority: formPriority,
     note: document.getElementById('f-note').value.trim() || null,
     interval: document.getElementById('f-interval').value.trim() || null,
-    steps: formType === 'project'
-      ? stepInputs.map(s => s.trim()).filter(Boolean).map(s => ({ text: s, done: false }))
-      : [],
-    done: false, createdAt: Date.now(),
+    done: false, expanded: true, children: [],
+    createdAt: Date.now(),
   };
-  tasks.unshift(task);
-  closeForm(); setFilter('all'); saveToDrive();
+
+  if (formParentId) {
+    const parent = findNode(formParentId, nodes);
+    if (parent) { parent.children = parent.children || []; parent.children.push(node); parent.expanded = true; }
+  } else {
+    nodes.push(node);
+  }
+
+  closeForm();
+  if (currentView !== 'tree') switchView('tree');
+  else render();
+  saveToDrive();
 }
 
 // ══════════════════════
@@ -789,14 +827,13 @@ function closeMenu() {
 // ══════════════════════
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeForm(); closeMenu(); }
-  if (e.key === 'Enter' && e.ctrlKey) submitTask();
+  if (e.key === 'Enter' && e.ctrlKey) submitNode();
 });
 
 // ══════════════════════
 //   INIT
 // ══════════════════════
 window.onload = () => {
-  // GISライブラリの読み込み完了を待つ
   const wait = setInterval(() => {
     if (window.google?.accounts?.oauth2) {
       clearInterval(wait);
