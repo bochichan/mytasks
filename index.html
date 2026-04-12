@@ -1065,11 +1065,12 @@ function finishDrag() {
 
   if (activeDropZone) {
     const parentId = activeDropZone.dataset.dropParent;
-    performDrop(dragNodeId, parentId === 'root' ? null : parentId);
+    const idx = parseInt(activeDropZone.dataset.dropIdx ?? '-1');
+    performDrop(dragNodeId, parentId === 'root' ? null : parentId, idx);
   } else if (activeDropNode) {
     const targetId = activeDropNode.dataset.id;
     if (!isAncestorOf(dragNodeId, targetId)) {
-      performDrop(dragNodeId, targetId);
+      performDrop(dragNodeId, targetId, -1);
     }
   }
 
@@ -1083,20 +1084,34 @@ function isAncestorOf(srcId, dstId) {
   return !!findNode(dstId, src.children||[]);
 }
 
-function performDrop(srcId, newParentId) {
+function performDrop(srcId, newParentId, insertIdx) {
   if (srcId === newParentId) return;
   if (newParentId && isAncestorOf(srcId, newParentId)) return;
   const node = findNode(srcId, nodes); if (!node) return;
+
   // 元の場所から除去
   deleteNodeById(srcId, nodes);
-  // 新しい場所に追加
+
+  // 挿入先の配列を取得
+  let targetArr;
   if (newParentId) {
     const p = findNode(newParentId, nodes);
-    if (p) { p.children = p.children||[]; p.children.push(node); p.expanded = true; }
-    else nodes.push(node);
+    if (!p) { nodes.push(node); render(); saveToDrive(); return; }
+    p.children = p.children || [];
+    p.expanded = true;
+    targetArr = p.children;
   } else {
-    nodes.push(node);
+    targetArr = nodes;
   }
+
+  // insertIdx: -1なら末尾、それ以外は指定位置に挿入
+  // ただし削除後にインデックスがずれる可能性があるのでclamp
+  if (insertIdx < 0 || insertIdx >= targetArr.length) {
+    targetArr.push(node);
+  } else {
+    targetArr.splice(insertIdx + 1, 0, node);
+  }
+
   render(); saveToDrive();
 }
 
