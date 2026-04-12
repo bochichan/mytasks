@@ -946,6 +946,10 @@ function submitClarify() {
 // ══════════════════════
 //   DRAG & DROP
 // ══════════════════════
+// ホバー中のターゲットを変数で保持（finishDragはこれを使う）
+let activeDropZone = null;   // .drop-zone要素
+let activeDropNode = null;   // .tree-node要素（子として追加する場合）
+
 function initDragListeners() {
   document.querySelectorAll('[data-drag-id]').forEach(handle => {
     handle.addEventListener('mousedown', onDragStart);
@@ -957,14 +961,12 @@ function onDragStart(e) {
   const id = e.currentTarget.dataset.dragId;
   if (!id) return;
   if (e.type === 'touchstart') {
-    // 長押し開始
     longPressTimer = setTimeout(() => {
       startDrag(id, e.touches[0].clientX, e.touches[0].clientY);
     }, 350);
     document.addEventListener('touchmove', onTouchMove, { passive: false });
     document.addEventListener('touchend', onTouchEnd);
   } else {
-    // マウス即時開始
     startDrag(id, e.clientX, e.clientY);
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
@@ -975,6 +977,8 @@ function onDragStart(e) {
 function startDrag(id, x, y) {
   isDragging = true;
   dragNodeId = id;
+  activeDropZone = null;
+  activeDropNode = null;
   const n = findNode(id, nodes);
   ghost.textContent = n ? n.title : '';
   ghost.style.display = 'block';
@@ -983,14 +987,14 @@ function startDrag(id, x, y) {
 }
 
 function moveGhost(x, y) {
-  ghost.style.left = (x + 12) + 'px';
-  ghost.style.top  = (y + 12) + 'px';
+  ghost.style.left = (x + 16) + 'px';
+  ghost.style.top  = (y + 8) + 'px';
 }
 
 function onMouseMove(e) {
   if (!isDragging) return;
   moveGhost(e.clientX, e.clientY);
-  highlightDropTarget(e.clientX, e.clientY);
+  updateDropTarget(e.clientX, e.clientY);
 }
 
 function onTouchMove(e) {
@@ -999,31 +1003,40 @@ function onTouchMove(e) {
   e.preventDefault();
   const t = e.touches[0];
   moveGhost(t.clientX, t.clientY);
-  highlightDropTarget(t.clientX, t.clientY);
+  updateDropTarget(t.clientX, t.clientY);
 }
 
-function highlightDropTarget(x, y) {
-  document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('active'));
-  document.querySelectorAll('.tree-node').forEach(n => n.classList.remove('drag-over'));
-
-  // 上下端に近ければ自動スクロール
+function updateDropTarget(x, y) {
+  // 自動スクロール
   const content = document.getElementById('content');
-  const TOP_THRESHOLD = 140;
-  const BOT_THRESHOLD = window.innerHeight - 80;
-  if (y < TOP_THRESHOLD) content.scrollTop -= 10;
-  else if (y > BOT_THRESHOLD) content.scrollTop += 10;
+  const TOP = 110; const BOT = window.innerHeight - 80;
+  if (y < TOP) content.scrollTop -= 12;
+  else if (y > BOT) content.scrollTop += 12;
 
-  // ヘッダー・フィルターバー上は除外
+  // ゴーストを一時非表示にしてelementFromPointを正確に取得
+  ghost.style.display = 'none';
   const el = document.elementFromPoint(x, y);
+  ghost.style.display = 'block';
+
+  // 前のハイライトをクリア
+  document.querySelectorAll('.drop-zone.active').forEach(z => z.classList.remove('active'));
+  document.querySelectorAll('.tree-node.drag-over').forEach(n => n.classList.remove('drag-over'));
+  activeDropZone = null;
+  activeDropNode = null;
+
   if (!el) return;
-  if (el.closest('.header') || el.closest('.filter-bar')) return;
+  if (el.closest('.header') || el.closest('.filter-bar') || el.closest('.tabbar')) return;
 
   const zone = el.closest('.drop-zone');
   if (zone) {
     zone.classList.add('active');
+    activeDropZone = zone;
   } else {
     const node = el.closest('.tree-node');
-    if (node && node.dataset.id !== dragNodeId) node.classList.add('drag-over');
+    if (node && node.dataset.id && node.dataset.id !== dragNodeId) {
+      node.classList.add('drag-over');
+      activeDropNode = node;
+    }
   }
 }
 
@@ -1031,7 +1044,7 @@ function onMouseUp(e) {
   document.removeEventListener('mousemove', onMouseMove);
   document.removeEventListener('mouseup', onMouseUp);
   if (!isDragging) return;
-  finishDrag(e.clientX, e.clientY);
+  finishDrag();
 }
 
 function onTouchEnd(e) {
@@ -1039,38 +1052,33 @@ function onTouchEnd(e) {
   document.removeEventListener('touchmove', onTouchMove);
   document.removeEventListener('touchend', onTouchEnd);
   if (!isDragging) return;
-  const t = e.changedTouches[0];
-  finishDrag(t.clientX, t.clientY);
+  finishDrag();
 }
 
-function finishDrag(x, y) {
+function finishDrag() {
   isDragging = false;
   ghost.style.display = 'none';
   document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('active'));
   document.querySelectorAll('.tree-node').forEach(n => n.classList.remove('dragging', 'drag-over'));
 
-  const el = document.elementFromPoint(x, y);
-  if (!el || !dragNodeId) { dragNodeId = null; return; }
+  if (!dragNodeId) return;
 
-  // ドロップゾーンへのドロップ（並び替え）
-  const zone = el.closest('.drop-zone');
-  const targetNode = el.closest('.tree-node');
-
-  if (zone) {
-    const parentId = zone.dataset.dropParent;
+  if (activeDropZone) {
+    const parentId = activeDropZone.dataset.dropParent;
     performDrop(dragNodeId, parentId === 'root' ? null : parentId);
-  } else if (targetNode && targetNode.dataset.id !== dragNodeId) {
-    // ノードへのドロップ（子として追加）
-    const targetId = targetNode.dataset.id;
+  } else if (activeDropNode) {
+    const targetId = activeDropNode.dataset.id;
     if (!isAncestorOf(dragNodeId, targetId)) {
       performDrop(dragNodeId, targetId);
     }
   }
+
   dragNodeId = null;
+  activeDropZone = null;
+  activeDropNode = null;
 }
 
 function isAncestorOf(srcId, dstId) {
-  // srcが dstの祖先ならtrue（循環防止）
   const src = findNode(srcId, nodes); if (!src) return false;
   return !!findNode(dstId, src.children||[]);
 }
