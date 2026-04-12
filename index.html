@@ -197,7 +197,7 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 
 /* ドロップゾーン */
 .drop-zone {
-  height: 6px; border-radius: 3px; margin: 2px 0;
+  height: 14px; border-radius: 3px; margin: -4px 0; padding: 4px 0; position: relative; z-index: 5;
   transition: all .15s; background: transparent;
 }
 .drop-zone.active { height: 28px; background: var(--accent-dim); border: 2px dashed var(--accent); border-radius: 8px; }
@@ -1005,11 +1005,23 @@ function onTouchMove(e) {
 function highlightDropTarget(x, y) {
   document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('active'));
   document.querySelectorAll('.tree-node').forEach(n => n.classList.remove('drag-over'));
+
+  // 上下端に近ければ自動スクロール
+  const content = document.getElementById('content');
+  const TOP_THRESHOLD = 140;
+  const BOT_THRESHOLD = window.innerHeight - 80;
+  if (y < TOP_THRESHOLD) content.scrollTop -= 10;
+  else if (y > BOT_THRESHOLD) content.scrollTop += 10;
+
+  // ヘッダー・フィルターバー上は除外
   const el = document.elementFromPoint(x, y);
   if (!el) return;
+  if (el.closest('.header') || el.closest('.filter-bar')) return;
+
   const zone = el.closest('.drop-zone');
-  if (zone) zone.classList.add('active');
-  else {
+  if (zone) {
+    zone.classList.add('active');
+  } else {
     const node = el.closest('.tree-node');
     if (node && node.dataset.id !== dragNodeId) node.classList.add('drag-over');
   }
