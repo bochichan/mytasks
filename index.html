@@ -9,24 +9,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
 
 :root {
-  --bg: #0f0f11;
-  --surface: #16161a;
-  --surface2: #1e1e24;
-  --border: #2a2a33;
-  --text: #e8e8f0;
-  --muted: #6b6b80;
-  --accent: #7c6aff;
-  --accent-dim: #7c6aff22;
-  --a: #ff6b6b; --a-dim: #ff6b6b18;
-  --b: #ffd166; --b-dim: #ffd16618;
-  --c: #06d6a0; --c-dim: #06d6a018;
-  --d: #4a9eff; --d-dim: #4a9eff18;
-  --single: #a78bfa;
-  --project: #f59e0b;
-  --recur: #34d399;
-  --tab-h: 60px;
-  --header-h: 56px;
-  --filter-h: 44px;
+  --bg: #0f0f11; --surface: #16161a; --surface2: #1e1e24; --border: #2a2a33;
+  --text: #e8e8f0; --muted: #6b6b80; --accent: #7c6aff; --accent-dim: #7c6aff22;
+  --a: #ff6b6b; --a-dim: #ff6b6b18; --b: #ffd166; --b-dim: #ffd16618;
+  --c: #06d6a0; --c-dim: #06d6a018; --d: #4a9eff; --d-dim: #4a9eff18;
+  --single: #a78bfa; --project: #f59e0b; --recur: #34d399;
+  --inbox: #e879f9;
+  --tab-h: 60px; --header-h: 56px; --filter-h: 44px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
@@ -58,49 +47,101 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
   overflow-x: auto; scrollbar-width: none; z-index: 9;
 }
 .filter-bar::-webkit-scrollbar { display: none; }
-
-/* Hide Done トグル */
-.hide-done-toggle {
-  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
-  cursor: pointer; touch-action: manipulation;
-}
-.toggle-track {
-  width: 36px; height: 20px; border-radius: 10px; background: var(--border);
-  position: relative; transition: background .2s; flex-shrink: 0;
-}
+.hide-done-toggle { display: flex; align-items: center; gap: 6px; flex-shrink: 0; cursor: pointer; }
+.toggle-track { width: 36px; height: 20px; border-radius: 10px; background: var(--border); position: relative; transition: background .2s; flex-shrink: 0; }
 .toggle-track.on { background: var(--accent); }
-.toggle-thumb {
-  position: absolute; top: 2px; left: 2px;
-  width: 16px; height: 16px; border-radius: 50%; background: white;
-  transition: left .2s;
-}
+.toggle-thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: white; transition: left .2s; }
 .toggle-track.on .toggle-thumb { left: 18px; }
 .toggle-label { font-size: 11px; color: var(--muted); white-space: nowrap; font-family: 'JetBrains Mono', monospace; }
 
-.filter-sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
-
 /* CONTENT */
 .content {
-  position: fixed;
-  top: calc(var(--header-h) + var(--filter-h));
-  left: 0; right: 0;
+  position: fixed; top: calc(var(--header-h) + var(--filter-h)); left: 0; right: 0;
   bottom: calc(var(--tab-h) + var(--safe-bottom));
   overflow-y: auto; -webkit-overflow-scrolling: touch;
 }
 .content::-webkit-scrollbar { display: none; }
 
 /* ══════════════════════════
+   INBOX VIEW
+══════════════════════════ */
+.inbox-view { padding: 10px 12px 24px; }
+
+.inbox-quick {
+  display: flex; gap: 10px; align-items: center;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 14px; margin-bottom: 10px;
+}
+.inbox-quick-input {
+  flex: 1; background: none; border: none; color: var(--text);
+  font-family: 'Noto Sans JP', sans-serif; font-size: 15px; outline: none;
+}
+.inbox-quick-input::placeholder { color: var(--muted); }
+.inbox-add-btn {
+  width: 32px; height: 32px; border-radius: 8px; background: var(--accent);
+  border: none; color: white; font-size: 20px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  touch-action: manipulation;
+}
+.inbox-add-btn:active { opacity: .75; }
+
+.inbox-section-label {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted);
+  letter-spacing: .1em; text-transform: uppercase; padding: 0 4px; margin-bottom: 6px;
+}
+
+.inbox-card {
+  background: var(--surface); border: 1px solid #e879f933;
+  border-left: 3px solid var(--inbox);
+  border-radius: 10px; margin-bottom: 7px; overflow: hidden;
+}
+.inbox-card-header {
+  display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 14px;
+  cursor: pointer; touch-action: manipulation;
+}
+.inbox-card-title { flex: 1; font-size: 14px; line-height: 1.4; word-break: break-all; }
+.inbox-expand-icon { color: var(--muted); font-size: 12px; flex-shrink: 0; transition: transform .15s; }
+.inbox-expand-icon.open { transform: rotate(180deg); }
+.inbox-card-actions { display: flex; gap: 4px; }
+.inbox-act-btn {
+  width: 28px; height: 28px; border-radius: 7px; border: none;
+  background: none; color: var(--muted); cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; justify-content: center; touch-action: manipulation;
+}
+.inbox-act-btn:active { background: var(--surface2); }
+.inbox-act-btn.clarify { color: var(--accent); }
+.inbox-act-btn.del { color: var(--border); }
+.inbox-act-btn.del:active { color: var(--a); }
+
+.inbox-card-detail {
+  padding: 0 14px 12px; display: none; border-top: 1px solid var(--border);
+}
+.inbox-card-detail.open { display: block; }
+
+/* ══════════════════════════
    TREE VIEW
 ══════════════════════════ */
 .tree-view { padding: 10px 12px 24px; }
 
-.tree-node { border-radius: 10px; overflow: hidden; border: 1px solid var(--border); background: var(--surface); margin-bottom: 7px; }
+.tree-node {
+  border-radius: 10px; overflow: visible; border: 1px solid var(--border);
+  background: var(--surface); margin-bottom: 7px;
+  transition: opacity .15s, box-shadow .15s;
+}
+.tree-node.drag-over { box-shadow: 0 0 0 2px var(--accent); }
+.tree-node.dragging { opacity: .4; }
 
-.node-row { display: flex; align-items: center; gap: 10px; padding: 12px 12px 10px 10px; position: relative; overflow: hidden; }
-
+.node-row { display: flex; align-items: center; gap: 10px; padding: 12px 12px 10px 10px; position: relative; overflow: hidden; border-radius: 10px 10px 0 0; }
 .node-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
 .bar-a { background: var(--a); } .bar-b { background: var(--b); }
 .bar-c { background: var(--c); } .bar-d { background: var(--d); }
+
+.drag-handle {
+  width: 20px; height: 28px; display: flex; align-items: center; justify-content: center;
+  color: var(--border); font-size: 14px; cursor: grab; flex-shrink: 0;
+  touch-action: none; user-select: none;
+}
+.drag-handle:active { cursor: grabbing; color: var(--muted); }
 
 .node-expand {
   width: 24px; height: 24px; border-radius: 6px; border: none;
@@ -112,9 +153,8 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 .node-expand.leaf { background: none; color: transparent; cursor: default; }
 
 .node-check {
-  width: 22px; height: 22px; border: 2px solid var(--border);
-  border-radius: 6px; cursor: pointer; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border: 2px solid var(--border); border-radius: 6px;
+  cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
   touch-action: manipulation; transition: all .15s;
 }
 .node-check.checked { background: var(--accent); border-color: var(--accent); }
@@ -123,35 +163,24 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 .node-body { flex: 1; min-width: 0; }
 .node-title { font-size: 14px; line-height: 1.4; word-break: break-all; }
 .node-done .node-title { text-decoration: line-through; opacity: .45; }
-
 .node-meta { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; align-items: center; }
-.badge {
-  font-family: 'JetBrains Mono', monospace; font-size: 9px;
-  padding: 2px 6px; border-radius: 3px; font-weight: 600; text-transform: uppercase;
-}
-.badge-a { background: #ff6b6b22; color: var(--a); }
-.badge-b { background: #ffd16622; color: var(--b); }
-.badge-c { background: #06d6a022; color: var(--c); }
-.badge-d { background: #4a9eff22; color: var(--d); }
+.badge { font-family: 'JetBrains Mono', monospace; font-size: 9px; padding: 2px 6px; border-radius: 3px; font-weight: 600; text-transform: uppercase; }
+.badge-a { background: #ff6b6b22; color: var(--a); } .badge-b { background: #ffd16622; color: var(--b); }
+.badge-c { background: #06d6a022; color: var(--c); } .badge-d { background: #4a9eff22; color: var(--d); }
 .badge-single { background: #a78bfa22; color: var(--single); }
 .badge-project { background: #f59e0b22; color: var(--project); }
 .badge-recurring { background: #34d39922; color: var(--recur); }
-
 .node-note { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
 
-/* プログレスバー */
 .progress-wrap { margin-top: 7px; display: flex; align-items: center; gap: 8px; }
-.progress-track {
-  flex: 1; height: 4px; border-radius: 2px; background: var(--border); overflow: hidden;
-}
+.progress-track { flex: 1; height: 4px; border-radius: 2px; background: var(--border); overflow: hidden; }
 .progress-fill { height: 100%; border-radius: 2px; background: var(--accent); transition: width .3s; }
 .progress-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); flex-shrink: 0; }
 
 .node-actions { display: flex; gap: 2px; flex-shrink: 0; }
 .node-act-btn {
-  width: 28px; height: 28px; border-radius: 7px; border: none;
-  background: none; color: var(--muted); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 7px; border: none; background: none;
+  color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center;
   font-size: 14px; touch-action: manipulation;
 }
 .node-act-btn:active { background: var(--surface2); }
@@ -166,33 +195,28 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 }
 .node-children .tree-node { margin-bottom: 0; }
 
+/* ドロップゾーン */
+.drop-zone {
+  height: 6px; border-radius: 3px; margin: 2px 0;
+  transition: all .15s; background: transparent;
+}
+.drop-zone.active { height: 28px; background: var(--accent-dim); border: 2px dashed var(--accent); border-radius: 8px; }
+
 /* ══════════════════════════
    MATRIX VIEW
 ══════════════════════════ */
 .matrix-view { padding: 10px 12px 24px; display: flex; flex-direction: column; gap: 10px; }
-
 .quad-section { border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
-.quad-header {
-  padding: 10px 14px; display: flex; align-items: center; gap: 10px;
-  font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600;
-}
+.quad-header { padding: 10px 14px; display: flex; align-items: center; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; }
 .quad-header-a { background: var(--a-dim); color: var(--a); border-bottom: 1px solid #ff6b6b33; }
 .quad-header-b { background: var(--b-dim); color: var(--b); border-bottom: 1px solid #ffd16633; }
 .quad-header-c { background: var(--c-dim); color: var(--c); border-bottom: 1px solid #06d6a033; }
 .quad-header-d { background: var(--d-dim); color: var(--d); border-bottom: 1px solid #4a9eff33; }
 .quad-header-done { background: var(--surface2); color: var(--muted); border-bottom: 1px solid var(--border); }
 .quad-label { flex: 1; } .quad-count { opacity: .6; font-size: 10px; }
-
-.matrix-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 11px 14px; border-bottom: 1px solid var(--border); background: var(--surface);
-}
+.matrix-item { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-bottom: 1px solid var(--border); background: var(--surface); }
 .matrix-item:last-child { border-bottom: none; }
-.matrix-check {
-  width: 20px; height: 20px; border: 1.5px solid var(--border); border-radius: 5px;
-  flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center;
-  font-size: 10px; touch-action: manipulation; transition: all .15s;
-}
+.matrix-check { width: 20px; height: 20px; border: 1.5px solid var(--border); border-radius: 5px; flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; touch-action: manipulation; transition: all .15s; }
 .matrix-check.checked { background: var(--accent); border-color: var(--accent); color: white; }
 .matrix-body { flex: 1; min-width: 0; }
 .matrix-title { font-size: 14px; line-height: 1.4; word-break: break-all; }
@@ -207,108 +231,67 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
   display: flex; align-items: stretch; z-index: 20;
 }
 .tab-btn {
-  flex: 1; background: none; border: none; color: var(--muted);
-  cursor: pointer; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 3px;
-  font-size: 9px; font-family: 'JetBrains Mono', monospace;
-  letter-spacing: .04em; touch-action: manipulation; position: relative;
+  flex: 1; background: none; border: none; color: var(--muted); cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  font-size: 9px; font-family: 'JetBrains Mono', monospace; letter-spacing: .04em;
+  touch-action: manipulation; position: relative;
 }
 .tab-btn.active { color: var(--accent); }
-.tab-btn.active::after {
-  content: ''; position: absolute; top: 0; left: 20%; right: 20%;
-  height: 2px; background: var(--accent); border-radius: 0 0 2px 2px;
-}
-.tab-icon { font-size: 20px; line-height: 1; }
-.fab {
-  width: 52px; height: 52px; border-radius: 16px;
-  background: var(--accent); border: none; color: white; font-size: 26px;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 4px 20px #7c6aff44; transition: transform .15s;
-  touch-action: manipulation; flex-shrink: 0; align-self: center; margin: 0 4px;
-}
+.tab-btn.active::after { content: ''; position: absolute; top: 0; left: 20%; right: 20%; height: 2px; background: var(--accent); border-radius: 0 0 2px 2px; }
+.tab-icon { font-size: 18px; line-height: 1; }
+.tab-badge { position: absolute; top: 6px; right: 12px; background: var(--inbox); color: white; font-size: 9px; font-family: 'JetBrains Mono', monospace; padding: 1px 5px; border-radius: 8px; min-width: 16px; text-align: center; }
+.fab { width: 52px; height: 52px; border-radius: 16px; background: var(--accent); border: none; color: white; font-size: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px #7c6aff44; transition: transform .15s; touch-action: manipulation; flex-shrink: 0; align-self: center; margin: 0 4px; }
 .fab:active { transform: scale(.93); }
 
 /* SHEETS */
 .sheet-overlay { position: fixed; inset: 0; background: #00000088; z-index: 30; display: none; }
 .sheet-overlay.open { display: block; }
-.sheet {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  background: var(--surface); border-radius: 20px 20px 0 0;
-  border-top: 1px solid var(--border); z-index: 31;
-  padding: 0 16px calc(16px + var(--safe-bottom));
-  transform: translateY(100%);
-  transition: transform .3s cubic-bezier(.32,0,.67,0);
-  max-height: 92dvh; overflow-y: auto;
-}
+.sheet { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-radius: 20px 20px 0 0; border-top: 1px solid var(--border); z-index: 31; padding: 0 16px calc(16px + var(--safe-bottom)); transform: translateY(100%); transition: transform .3s cubic-bezier(.32,0,.67,0); max-height: 92dvh; overflow-y: auto; }
 .sheet.open { transform: translateY(0); transition: transform .3s cubic-bezier(.33,1,.68,1); }
 .sheet-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 12px auto 16px; }
 .sheet-title { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
 .sheet-subtitle { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
 
-.field-label {
-  font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace;
-  letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; margin-top: 14px;
-}
-.f-input, .f-textarea {
-  width: 100%; background: var(--bg); border: 1px solid var(--border);
-  color: var(--text); border-radius: 10px; padding: 12px 14px;
-  font-family: 'Noto Sans JP', sans-serif; font-size: 15px;
-  outline: none; transition: border-color .15s; -webkit-appearance: none;
-}
-.f-input:focus, .f-textarea:focus { border-color: var(--accent); }
+.field-label { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; margin-top: 14px; }
+.f-input, .f-textarea, .f-select { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 10px; padding: 12px 14px; font-family: 'Noto Sans JP', sans-serif; font-size: 15px; outline: none; transition: border-color .15s; -webkit-appearance: none; }
+.f-input:focus, .f-textarea:focus, .f-select:focus { border-color: var(--accent); }
 .f-textarea { resize: none; min-height: 72px; }
+.f-select { cursor: pointer; }
+.f-select option { background: var(--surface2); }
 
 .seg-group { display: flex; gap: 6px; flex-wrap: wrap; }
-.seg-btn {
-  flex: 1; min-width: 0; padding: 10px 4px; border-radius: 9px;
-  border: 1.5px solid var(--border); background: none; color: var(--muted);
-  font-family: 'Noto Sans JP', sans-serif; font-size: 12px;
-  cursor: pointer; text-align: center; transition: all .15s;
-  touch-action: manipulation; line-height: 1.3;
-}
-.seg-btn.sel-single    { border-color: var(--single);  background: #a78bfa22; color: var(--single); }
-.seg-btn.sel-project   { border-color: var(--project); background: #f59e0b22; color: var(--project); }
-.seg-btn.sel-recurring { border-color: var(--recur);   background: #34d39922; color: var(--recur); }
+.seg-btn { flex: 1; min-width: 0; padding: 10px 4px; border-radius: 9px; border: 1.5px solid var(--border); background: none; color: var(--muted); font-family: 'Noto Sans JP', sans-serif; font-size: 12px; cursor: pointer; text-align: center; transition: all .15s; touch-action: manipulation; line-height: 1.3; }
+.seg-btn.sel-single { border-color: var(--single); background: #a78bfa22; color: var(--single); }
+.seg-btn.sel-project { border-color: var(--project); background: #f59e0b22; color: var(--project); }
+.seg-btn.sel-recurring { border-color: var(--recur); background: #34d39922; color: var(--recur); }
 .seg-btn.sel-A { border-color: var(--a); background: #ff6b6b22; color: var(--a); }
 .seg-btn.sel-B { border-color: var(--b); background: #ffd16622; color: var(--b); }
 .seg-btn.sel-C { border-color: var(--c); background: #06d6a022; color: var(--c); }
 .seg-btn.sel-D { border-color: var(--d); background: #4a9eff22; color: var(--d); }
 
 .sheet-actions { display: flex; gap: 10px; margin-top: 20px; }
-.btn {
-  flex: 1; padding: 14px; border-radius: 12px; border: none;
-  cursor: pointer; font-size: 15px; font-family: 'Noto Sans JP', sans-serif;
-  font-weight: 500; transition: opacity .15s; touch-action: manipulation;
-}
+.btn { flex: 1; padding: 14px; border-radius: 12px; border: none; cursor: pointer; font-size: 15px; font-family: 'Noto Sans JP', sans-serif; font-weight: 500; transition: opacity .15s; touch-action: manipulation; }
 .btn:active { opacity: .75; }
 .btn-primary { background: var(--accent); color: white; }
 .btn-ghost { background: var(--surface2); color: var(--muted); }
 
-.menu-item {
-  display: flex; align-items: center; gap: 14px;
-  padding: 16px 4px; border-bottom: 1px solid var(--border);
-  cursor: pointer; font-size: 15px; touch-action: manipulation;
-}
+.menu-item { display: flex; align-items: center; gap: 14px; padding: 16px 4px; border-bottom: 1px solid var(--border); cursor: pointer; font-size: 15px; touch-action: manipulation; }
 .menu-item:last-child { border-bottom: none; }
 .menu-item:active { opacity: .6; }
 .menu-icon { font-size: 20px; width: 28px; text-align: center; }
 
 /* LOGIN */
-.login-screen {
-  position: fixed; inset: 0; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 20px; background: var(--bg); z-index: 100; padding: 32px;
-}
+.login-screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; background: var(--bg); z-index: 100; padding: 32px; }
 .login-screen.hidden { display: none; }
 .login-title { font-size: 22px; font-weight: 500; }
 .login-sub { font-size: 13px; color: var(--muted); text-align: center; line-height: 1.7; }
-.login-btn {
-  padding: 14px 32px; border-radius: 12px; background: var(--accent); border: none; color: white;
-  font-size: 15px; font-family: 'Noto Sans JP', sans-serif; font-weight: 500; cursor: pointer;
-}
+.login-btn { padding: 14px 32px; border-radius: 12px; background: var(--accent); border: none; color: white; font-size: 15px; font-family: 'Noto Sans JP', sans-serif; font-weight: 500; cursor: pointer; }
 
 .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--muted); font-size: 13px; padding: 60px 0; }
 .empty-icon { font-size: 40px; opacity: .3; }
+
+/* DRAG GHOST */
+#drag-ghost { position: fixed; pointer-events: none; z-index: 9999; opacity: .85; border-radius: 10px; background: var(--surface); border: 1px solid var(--accent); padding: 10px 14px; font-size: 14px; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 8px 30px #0008; display: none; }
 </style>
 </head>
 <body>
@@ -320,16 +303,14 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 </div>
 
 <header class="header">
-  <span class="header-title" id="header-title">ツリー</span>
+  <span class="header-title" id="header-title">Inbox</span>
   <span class="sync-status" id="sync-status"></span>
   <button class="icon-btn" onclick="openMenu()">⋯</button>
 </header>
 
 <div class="filter-bar">
-  <div class="hide-done-toggle" onclick="toggleHideDone()" id="hide-toggle">
-    <div class="toggle-track" id="toggle-track">
-      <div class="toggle-thumb"></div>
-    </div>
+  <div class="hide-done-toggle" onclick="toggleHideDone()">
+    <div class="toggle-track" id="toggle-track"><div class="toggle-thumb"></div></div>
     <span class="toggle-label">完了を隠す</span>
   </div>
 </div>
@@ -337,32 +318,32 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 <div class="content" id="content"></div>
 
 <nav class="tabbar">
-  <button class="tab-btn active" id="tab-tree" onclick="switchView('tree')">
+  <button class="tab-btn active" id="tab-inbox" onclick="switchView('inbox')">
+    <span class="tab-icon">📥</span>Inbox
+    <span class="tab-badge" id="inbox-badge" style="display:none"></span>
+  </button>
+  <button class="tab-btn" id="tab-tree" onclick="switchView('tree')">
     <span class="tab-icon">⌥</span>ツリー
   </button>
-  <button class="fab" onclick="openForm(null, false)">＋</button>
   <button class="tab-btn" id="tab-matrix" onclick="switchView('matrix')">
     <span class="tab-icon">⊞</span>マトリクス
   </button>
 </nav>
 
-<!-- FORM SHEET -->
+<!-- FORM SHEET（ツリー追加・編集） -->
 <div class="sheet-overlay" id="form-overlay" onclick="closeForm()"></div>
 <div class="sheet" id="form-sheet">
   <div class="sheet-handle"></div>
   <div class="sheet-title" id="form-title">ノードを追加</div>
   <div class="sheet-subtitle" id="form-subtitle"></div>
-
   <div class="field-label">タイトル</div>
-  <input class="f-input" id="f-title" placeholder="例：研究 / キクラゲ引き継ぎ完了" />
-
+  <input class="f-input" id="f-title" placeholder="タイトル" />
   <div class="field-label">種別</div>
   <div class="seg-group" id="seg-type">
     <button class="seg-btn sel-single" data-val="single" onclick="selectSeg('type','single')">単発</button>
-    <button class="seg-btn" data-val="project" onclick="selectSeg('type','project')">プロジェクト</button>
+    <button class="seg-btn" data-val="project" onclick="selectSeg('type','project')">PJ</button>
     <button class="seg-btn" data-val="recurring" onclick="selectSeg('type','recurring')">定期</button>
   </div>
-
   <div class="field-label">優先度</div>
   <div class="seg-group" id="seg-priority">
     <button class="seg-btn" data-val="A" onclick="selectSeg('priority','A')">A<br><span style="font-size:10px;opacity:.7">緊急×重要</span></button>
@@ -370,18 +351,52 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
     <button class="seg-btn" data-val="C" onclick="selectSeg('priority','C')">C<br><span style="font-size:10px;opacity:.7">緊急</span></button>
     <button class="seg-btn" data-val="D" onclick="selectSeg('priority','D')">D<br><span style="font-size:10px;opacity:.7">その他</span></button>
   </div>
-
   <div class="field-label">メモ（任意）</div>
   <textarea class="f-textarea" id="f-note" placeholder="補足など"></textarea>
-
   <div id="f-interval-wrap" style="display:none">
     <div class="field-label">繰り返し</div>
     <input class="f-input" id="f-interval" placeholder="例：毎週月曜" />
   </div>
-
   <div class="sheet-actions">
     <button class="btn btn-ghost" onclick="closeForm()">キャンセル</button>
     <button class="btn btn-primary" id="form-submit-btn" onclick="submitNode()">追加する</button>
+  </div>
+</div>
+
+<!-- CLARIFY SHEET（InboxからツリーへのClarify） -->
+<div class="sheet-overlay" id="clarify-overlay" onclick="closeClarify()"></div>
+<div class="sheet" id="clarify-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Clarify</div>
+  <div class="sheet-subtitle">Inboxタスクをツリーに組み込む</div>
+  <div class="field-label">タイトル</div>
+  <input class="f-input" id="cl-title" placeholder="タイトル" />
+  <div class="field-label">種別</div>
+  <div class="seg-group" id="cl-seg-type">
+    <button class="seg-btn sel-single" data-val="single" onclick="selectClSeg('type','single')">単発</button>
+    <button class="seg-btn" data-val="project" onclick="selectClSeg('type','project')">PJ</button>
+    <button class="seg-btn" data-val="recurring" onclick="selectClSeg('type','recurring')">定期</button>
+  </div>
+  <div class="field-label">優先度</div>
+  <div class="seg-group" id="cl-seg-priority">
+    <button class="seg-btn" data-val="A" onclick="selectClSeg('priority','A')">A<br><span style="font-size:10px;opacity:.7">緊急×重要</span></button>
+    <button class="seg-btn sel-B" data-val="B" onclick="selectClSeg('priority','B')">B<br><span style="font-size:10px;opacity:.7">重要</span></button>
+    <button class="seg-btn" data-val="C" onclick="selectClSeg('priority','C')">C<br><span style="font-size:10px;opacity:.7">緊急</span></button>
+    <button class="seg-btn" data-val="D" onclick="selectClSeg('priority','D')">D<br><span style="font-size:10px;opacity:.7">その他</span></button>
+  </div>
+  <div class="field-label">メモ（任意）</div>
+  <textarea class="f-textarea" id="cl-note" placeholder="補足など"></textarea>
+  <div id="cl-interval-wrap" style="display:none">
+    <div class="field-label">繰り返し</div>
+    <input class="f-input" id="cl-interval" placeholder="例：毎週月曜" />
+  </div>
+  <div class="field-label">親ノード（ツリー上の位置）</div>
+  <select class="f-select" id="cl-parent">
+    <option value="">── ルートに追加 ──</option>
+  </select>
+  <div class="sheet-actions">
+    <button class="btn btn-ghost" onclick="closeClarify()">キャンセル</button>
+    <button class="btn btn-primary" onclick="submitClarify()">ツリーに移動</button>
   </div>
 </div>
 
@@ -390,29 +405,30 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 <div class="sheet" id="menu-sheet">
   <div class="sheet-handle"></div>
   <div class="sheet-title">メニュー</div>
-  <div class="menu-item" onclick="syncFromDrive(); closeMenu()">
-    <span class="menu-icon">↓</span>ドライブから再読み込み
-  </div>
-  <div class="menu-item" onclick="forceSyncToDrive(); closeMenu()">
-    <span class="menu-icon">↑</span>ドライブへ強制保存
-  </div>
-  <div class="menu-item" onclick="signOut(); closeMenu()">
-    <span class="menu-icon">⏻</span>ログアウト
-  </div>
+  <div class="menu-item" onclick="syncFromDrive(); closeMenu()"><span class="menu-icon">↓</span>ドライブから再読み込み</div>
+  <div class="menu-item" onclick="forceSyncToDrive(); closeMenu()"><span class="menu-icon">↑</span>ドライブへ強制保存</div>
+  <div class="menu-item" onclick="signOut(); closeMenu()"><span class="menu-icon">⏻</span>ログアウト</div>
 </div>
+
+<!-- DRAG GHOST -->
+<div id="drag-ghost"></div>
 
 <script>
 const CLIENT_ID = '741303706363-kgdmf1pot1c86sv0poncpiehmcop81d9.apps.googleusercontent.com';
 const SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
 const FILE_NAME = 'tasks.json';
-const LS_KEY = 'sasami_tasks_v3';
+const LS_KEY = 'sasami_tasks_v4';
 const LS_TOKEN = 'sasami_gtoken';
 
+// DATA
+// nodes: ツリー構造
+// inbox: [{id, title, createdAt}] ── 未分類タスク
 let nodes = [];
+let inbox = [];
 let accessToken = null;
 let driveFileId = null;
 let tokenClient = null;
-let currentView = 'tree';
+let currentView = 'inbox';
 let hideDone = false;
 
 // form state
@@ -420,9 +436,20 @@ let formParentId = null;
 let formEditId = null;
 let formType = 'single';
 let formPriority = 'B';
+let clType = 'single';
+let clPriority = 'B';
+let clarifyTargetId = null;
+
+// drag state
+let dragNodeId = null;
+let dragSource = null; // 'tree' | 'inbox'
+let dragOverNodeId = null;
+let longPressTimer = null;
+let isDragging = false;
+const ghost = document.getElementById('drag-ghost');
 
 // ══════════════════════
-//   GOOGLE AUTH
+//   AUTH
 // ══════════════════════
 function initGIS() {
   tokenClient = google.accounts.oauth2.initTokenClient({
@@ -445,7 +472,6 @@ function initGIS() {
     });
   }
 }
-
 function signIn() { tokenClient.requestAccessToken({ prompt: 'consent' }); }
 function signOut() {
   if (accessToken) google.accounts.oauth2.revoke(accessToken);
@@ -454,7 +480,7 @@ function signOut() {
 }
 
 // ══════════════════════
-//   DRIVE API
+//   DRIVE
 // ══════════════════════
 async function driveReq(method, path, params, body) {
   const url = new URL('https://www.googleapis.com' + path);
@@ -469,11 +495,10 @@ async function findFile() {
   const res = await driveReq('GET', '/drive/v3/files', { spaces: 'appDataFolder', q: `name='${FILE_NAME}'`, fields: 'files(id)' });
   return (await res.json()).files?.[0]?.id || null;
 }
-async function readFile(id) {
-  return await (await driveReq('GET', `/drive/v3/files/${id}`, { alt: 'media' })).json();
-}
+async function readFile(id) { return await (await driveReq('GET', `/drive/v3/files/${id}`, { alt: 'media' })).json(); }
 async function createFile(content) {
-  const b = 'bnd'; const meta = JSON.stringify({ name: FILE_NAME, parents: ['appDataFolder'] });
+  const b = 'bnd';
+  const meta = JSON.stringify({ name: FILE_NAME, parents: ['appDataFolder'] });
   const body = `--${b}\r\nContent-Type: application/json\r\n\r\n${meta}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(content)}\r\n--${b}--`;
   return (await (await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
     method: 'POST', headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': `multipart/related; boundary=${b}` }, body,
@@ -485,194 +510,253 @@ async function updateFile(id, content) {
     body: JSON.stringify(content),
   });
 }
-
+function getData() { return { nodes, inbox }; }
 async function syncFromDrive() {
   setSyncStatus('busy', '読込中…');
   try {
     driveFileId = await findFile();
-    nodes = driveFileId ? await readFile(driveFileId) : [];
-    if (!driveFileId) driveFileId = await createFile(nodes);
-    localStorage.setItem(LS_KEY, JSON.stringify(nodes));
+    if (driveFileId) {
+      const data = await readFile(driveFileId);
+      nodes = data.nodes || []; inbox = data.inbox || [];
+    } else {
+      nodes = []; inbox = [];
+      driveFileId = await createFile(getData());
+    }
+    localStorage.setItem(LS_KEY, JSON.stringify(getData()));
     setSyncStatus('ok', '同期済み'); render();
   } catch {
     setSyncStatus('err', '同期失敗');
     const local = localStorage.getItem(LS_KEY);
-    if (local) nodes = JSON.parse(local);
+    if (local) { const d = JSON.parse(local); nodes = d.nodes||[]; inbox = d.inbox||[]; }
     render();
   }
 }
 async function saveToDrive() {
-  localStorage.setItem(LS_KEY, JSON.stringify(nodes));
+  const data = getData();
+  localStorage.setItem(LS_KEY, JSON.stringify(data));
   if (!accessToken || !driveFileId) return;
   setSyncStatus('busy', '保存中…');
-  try { await updateFile(driveFileId, nodes); setSyncStatus('ok', '保存済み'); }
+  try { await updateFile(driveFileId, data); setSyncStatus('ok', '保存済み'); }
   catch { setSyncStatus('err', '保存失敗'); }
 }
 async function forceSyncToDrive() {
   setSyncStatus('busy', '保存中…');
   try {
     if (!driveFileId) driveFileId = await findFile();
-    if (driveFileId) await updateFile(driveFileId, nodes);
-    else driveFileId = await createFile(nodes);
+    if (driveFileId) await updateFile(driveFileId, getData());
+    else driveFileId = await createFile(getData());
     setSyncStatus('ok', '保存済み');
   } catch { setSyncStatus('err', '保存失敗'); }
 }
-function setSyncStatus(type, msg) {
-  const el = document.getElementById('sync-status');
-  el.className = 'sync-status ' + type; el.textContent = msg;
-}
+function setSyncStatus(t, m) { const el = document.getElementById('sync-status'); el.className = 'sync-status ' + t; el.textContent = m; }
 
 // ══════════════════════
 //   TREE UTILS
 // ══════════════════════
 function makeId() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
-
 function findNode(id, arr) {
+  for (const n of arr) { if (n.id === id) return n; const f = findNode(id, n.children||[]); if (f) return f; }
+  return null;
+}
+function findParentArr(id, arr, root) {
+  if (!root) root = arr;
   for (const n of arr) {
-    if (n.id === id) return n;
-    const f = findNode(id, n.children || []);
+    if ((n.children||[]).some(c => c.id === id)) return n.children;
+    const f = findParentArr(id, n.children||[], root);
     if (f) return f;
   }
   return null;
 }
-
 function deleteNodeById(id, arr) {
   const idx = arr.findIndex(n => n.id === id);
   if (idx !== -1) { arr.splice(idx, 1); return true; }
-  for (const n of arr) if (deleteNodeById(id, n.children || [])) return true;
+  for (const n of arr) if (deleteNodeById(id, n.children||[])) return true;
   return false;
 }
-
-function flattenNodes(arr, acc) {
-  for (const n of arr) { acc.push(n); flattenNodes(n.children || [], acc); }
-  return acc;
-}
-
-// Leaf nodeかどうか
-function isLeaf(n) { return !n.children || n.children.length === 0; }
-
-// パスを返す（自分自身は含まない）
+function flattenNodes(arr, acc) { for (const n of arr) { acc.push(n); flattenNodes(n.children||[], acc); } return acc; }
+function isLeaf(n) { return !(n.children||[]).length; }
 function getPath(id, arr, path) {
   for (const n of arr) {
-    const cur = [...path, n.title];
     if (n.id === id) return path;
-    const f = getPath(id, n.children || [], cur);
+    const f = getPath(id, n.children||[], [...path, n.title]);
     if (f !== null) return f;
   }
   return null;
 }
-
-// 再帰的に子の完了率を計算（leaf nodeのみカウント）
 function calcProgress(n) {
-  const leaves = [];
-  collectLeaves(n.children || [], leaves);
+  const leaves = []; collectLeaves(n.children||[], leaves);
   if (!leaves.length) return null;
   const done = leaves.filter(l => l.done).length;
-  return { done, total: leaves.length, pct: Math.round(done / leaves.length * 100) };
+  return { done, total: leaves.length, pct: Math.round(done/leaves.length*100) };
 }
-
-function collectLeaves(arr, acc) {
+function collectLeaves(arr, acc) { for (const n of arr) { if (isLeaf(n)) acc.push(n); else collectLeaves(n.children, acc); } }
+function getAllNodeOptions(arr, depth, acc) {
   for (const n of arr) {
-    if (isLeaf(n)) acc.push(n);
-    else collectLeaves(n.children, acc);
+    acc.push({ id: n.id, label: '　'.repeat(depth) + n.title });
+    getAllNodeOptions(n.children||[], depth+1, acc);
   }
+  return acc;
+}
+// ツリー上で src が dst の祖先かチェック（循環防止）
+function isAncestor(srcId, dstId, arr) {
+  const src = findNode(srcId, arr);
+  if (!src) return false;
+  return findNode(dstId, src.children||[]) !== null || (src.children||[]).some(c => isAncestor(c.id, dstId, [c]));
 }
 
 // ══════════════════════
-//   HIDE DONE TOGGLE
+//   TOGGLE
 // ══════════════════════
 function toggleHideDone() {
   hideDone = !hideDone;
-  const track = document.getElementById('toggle-track');
-  track.classList.toggle('on', hideDone);
+  document.getElementById('toggle-track').classList.toggle('on', hideDone);
   render();
 }
 
 // ══════════════════════
-//   VIEW SWITCH
+//   VIEW
 // ══════════════════════
 function switchView(v) {
   currentView = v;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + v).classList.add('active');
-  document.getElementById('header-title').textContent = v === 'tree' ? 'ツリー' : 'マトリクス';
+  const labels = { inbox: 'Inbox', tree: 'ツリー', matrix: 'マトリクス' };
+  document.getElementById('header-title').textContent = labels[v];
   render();
 }
 
 // ══════════════════════
 //   RENDER
 // ══════════════════════
+function updateInboxBadge() {
+  const badge = document.getElementById('inbox-badge');
+  if (inbox.length) { badge.textContent = inbox.length; badge.style.display = 'block'; }
+  else badge.style.display = 'none';
+}
+
 function render() {
+  updateInboxBadge();
   const el = document.getElementById('content');
-  if (currentView === 'tree') {
-    const filtered = hideDone ? nodes.filter(n => !n.done) : nodes;
-    if (!nodes.length) {
-      el.innerHTML = `<div class="tree-view"><div class="empty"><div class="empty-icon">◎</div><div>＋でノードを追加</div></div></div>`;
-      return;
-    }
-    el.innerHTML = `<div class="tree-view">${renderTreeNodes(filtered, 0)}</div>`;
+  if (currentView === 'inbox') el.innerHTML = renderInbox();
+  else if (currentView === 'tree') el.innerHTML = renderTree();
+  else el.innerHTML = renderMatrix();
+  if (currentView === 'tree') initDragListeners();
+}
+
+// ── INBOX ──
+function renderInbox() {
+  let html = '<div class="inbox-view">';
+  // クイック入力
+  html += `<div class="inbox-quick">
+    <input class="inbox-quick-input" id="inbox-input" placeholder="気になったことを放り込む…" onkeydown="if(event.key==='Enter')addToInbox()" />
+    <button class="inbox-add-btn" onclick="addToInbox()">＋</button>
+  </div>`;
+
+  if (!inbox.length) {
+    html += '<div class="empty"><div class="empty-icon">📥</div><div>Inboxは空です</div></div>';
   } else {
-    el.innerHTML = renderMatrix();
+    html += `<div class="inbox-section-label">${inbox.length} 件 未整理</div>`;
+    html += inbox.map(item => `
+      <div class="inbox-card" id="inbox-${item.id}">
+        <div class="inbox-card-header" onclick="toggleInboxDetail('${item.id}')">
+          <span class="inbox-card-title">${esc(item.title)}</span>
+          <div class="inbox-card-actions" onclick="event.stopPropagation()">
+            <button class="inbox-act-btn clarify" onclick="openClarify('${item.id}')" title="Clarify">→</button>
+            <button class="inbox-act-btn del" onclick="deleteInboxItem('${item.id}')" title="削除">×</button>
+          </div>
+          <span class="inbox-expand-icon" id="inbox-icon-${item.id}">▼</span>
+        </div>
+        <div class="inbox-card-detail" id="inbox-detail-${item.id}">
+          <div style="padding-top:10px;font-size:12px;color:var(--muted)">
+            「→」ボタンでClarify（ツリーへ移動）できます。<br>
+            追加日: ${new Date(item.createdAt).toLocaleDateString('ja-JP')}
+          </div>
+        </div>
+      </div>`).join('');
   }
+  html += '</div>';
+  return html;
 }
 
-function renderTreeNodes(arr, depth) {
-  return arr.map(n => renderTreeNode(n, depth)).join('');
+function addToInbox() {
+  const input = document.getElementById('inbox-input');
+  const title = input.value.trim();
+  if (!title) return;
+  inbox.unshift({ id: makeId(), title, createdAt: Date.now() });
+  input.value = '';
+  render(); saveToDrive();
 }
 
-function renderTreeNode(n, depth) {
-  const children = n.children || [];
+function toggleInboxDetail(id) {
+  const detail = document.getElementById('inbox-detail-' + id);
+  const icon = document.getElementById('inbox-icon-' + id);
+  if (!detail) return;
+  detail.classList.toggle('open');
+  icon.classList.toggle('open');
+}
+
+function deleteInboxItem(id) {
+  if (!confirm('このInboxタスクを削除しますか？')) return;
+  inbox = inbox.filter(i => i.id !== id);
+  render(); saveToDrive();
+}
+
+// ── TREE ──
+function renderTree() {
+  const filtered = hideDone ? nodes.filter(n => !n.done) : nodes;
+  if (!nodes.length) return '<div class="tree-view"><div class="empty"><div class="empty-icon">◎</div><div>＋でノードを追加</div></div></div>';
+  return `<div class="tree-view" id="tree-root" data-drop-root="true">${renderDropZone('root', -1)}${renderTreeNodes(filtered)}` +
+    `<button style="width:100%;padding:12px;border-radius:10px;border:1px dashed var(--border);background:none;color:var(--muted);font-size:13px;cursor:pointer;margin-top:4px;font-family:'Noto Sans JP',sans-serif" onclick="openForm(null,false)">＋ ルートにノードを追加</button></div>`;
+}
+
+function renderTreeNodes(arr) { return arr.map((n,i) => renderTreeNode(n) + renderDropZone('root', i)).join(''); }
+
+function renderTreeNode(n) {
+  const children = n.children||[];
   const hasChildren = children.length > 0;
   const expanded = n.expanded !== false;
-  const barCls = 'bar-' + n.priority.toLowerCase();
-  const bPri = 'badge-' + n.priority.toLowerCase();
-  const bType = 'badge-' + n.type;
-  const typeLabel = { single:'単発', project:'PJ', recurring:'定期' }[n.type];
+  const barCls = 'bar-'+n.priority.toLowerCase();
+  const bPri = 'badge-'+n.priority.toLowerCase();
+  const bType = 'badge-'+n.type;
+  const typeLabel = {single:'単発',project:'PJ',recurring:'定期'}[n.type];
   const doneClass = n.done ? 'node-done' : '';
 
   const expandBtn = hasChildren
-    ? `<button class="node-expand ${expanded ? 'expanded' : ''}" onclick="toggleExpand('${n.id}')">▶</button>`
+    ? `<button class="node-expand ${expanded?'expanded':''}" onclick="toggleExpand('${n.id}')">▶</button>`
     : `<button class="node-expand leaf">·</button>`;
 
   const noteHtml = n.note ? `<div class="node-note">${esc(n.note)}</div>` : '';
-  const recurHtml = n.type === 'recurring' && n.interval ? `<div class="node-note" style="color:var(--recur)">↻ ${esc(n.interval)}</div>` : '';
+  const recurHtml = n.type==='recurring'&&n.interval ? `<div class="node-note" style="color:var(--recur)">↻ ${esc(n.interval)}</div>` : '';
 
-  // プログレスバー（子を持つノードのみ）
   let progressHtml = '';
   if (hasChildren) {
     const prog = calcProgress(n);
-    if (prog) {
-      progressHtml = `
-        <div class="progress-wrap">
-          <div class="progress-track"><div class="progress-fill" style="width:${prog.pct}%"></div></div>
-          <span class="progress-label">${prog.done}/${prog.total} (${prog.pct}%)</span>
-        </div>`;
-    }
+    if (prog) progressHtml = `<div class="progress-wrap"><div class="progress-track"><div class="progress-fill" style="width:${prog.pct}%"></div></div><span class="progress-label">${prog.done}/${prog.total} (${prog.pct}%)</span></div>`;
   }
 
-  // 子のフィルタリング（hideDone時）
   const visibleChildren = hideDone ? children.filter(c => !c.done) : children;
-  const childrenHtml = hasChildren && expanded && visibleChildren.length
-    ? `<div class="node-children">${renderTreeNodes(visibleChildren, depth + 1)}</div>`
-    : (hasChildren && expanded && !visibleChildren.length ? '<div class="node-children" style="padding:8px 16px;font-size:12px;color:var(--muted)">完了済みのみ（非表示中）</div>' : '');
+  const childrenHtml = hasChildren && expanded
+    ? `<div class="node-children" data-parent-id="${n.id}">
+        ${renderDropZone(n.id, -1)}
+        ${visibleChildren.map((c,i) => renderTreeNode(c) + renderDropZone(n.id, i)).join('')}
+       </div>`
+    : '';
 
   return `
-    <div class="tree-node" id="node-${n.id}">
-      <div class="node-row ${doneClass}">
+    <div class="tree-node ${doneClass}" id="tnode-${n.id}" data-id="${n.id}">
+      <div class="node-row">
         <div class="node-bar ${barCls}"></div>
+        <div class="drag-handle" data-drag-id="${n.id}" title="ドラッグして移動">⠿</div>
         ${expandBtn}
-        <div class="node-check ${n.done ? 'checked' : ''}" onclick="toggleDone('${n.id}')"></div>
+        <div class="node-check ${n.done?'checked':''}" onclick="toggleDone('${n.id}')"></div>
         <div class="node-body">
           <div class="node-title">${esc(n.title)}</div>
-          <div class="node-meta">
-            <span class="badge ${bPri}">${n.priority}</span>
-            <span class="badge ${bType}">${typeLabel}</span>
-          </div>
+          <div class="node-meta"><span class="badge ${bPri}">${n.priority}</span><span class="badge ${bType}">${typeLabel}</span></div>
           ${noteHtml}${recurHtml}${progressHtml}
         </div>
         <div class="node-actions">
-          <button class="node-act-btn add-child" onclick="openForm('${n.id}', false)" title="子を追加">＋</button>
-          <button class="node-act-btn edit" onclick="openForm('${n.id}', true)" title="編集">✎</button>
+          <button class="node-act-btn add-child" onclick="openForm('${n.id}',false)" title="子を追加">＋</button>
+          <button class="node-act-btn edit" onclick="openForm('${n.id}',true)" title="編集">✎</button>
           <button class="node-act-btn del" onclick="deleteNode('${n.id}')" title="削除">×</button>
         </div>
       </div>
@@ -680,20 +764,22 @@ function renderTreeNode(n, depth) {
     </div>`;
 }
 
+function renderDropZone(parentId, idx) {
+  return `<div class="drop-zone" data-drop-parent="${parentId}" data-drop-idx="${idx}"></div>`;
+}
+
+// ── MATRIX ──
 function renderMatrix() {
   const all = flattenNodes(nodes, []);
-  // Leaf nodeのみ
   const leaves = all.filter(isLeaf);
   const active = leaves.filter(n => !n.done);
-  const done   = leaves.filter(n => n.done);
-
+  const done = leaves.filter(n => n.done);
   const quads = [
-    { key: 'A', label: 'A ― 緊急×重要', cls: 'quad-header-a' },
-    { key: 'B', label: 'B ― 重要',       cls: 'quad-header-b' },
-    { key: 'C', label: 'C ― 緊急',       cls: 'quad-header-c' },
-    { key: 'D', label: 'D ― その他',     cls: 'quad-header-d' },
+    {key:'A',label:'A ― 緊急×重要',cls:'quad-header-a'},
+    {key:'B',label:'B ― 重要',cls:'quad-header-b'},
+    {key:'C',label:'C ― 緊急',cls:'quad-header-c'},
+    {key:'D',label:'D ― その他',cls:'quad-header-d'},
   ];
-
   let html = '<div class="matrix-view">';
   for (const q of quads) {
     const items = active.filter(n => n.priority === q.key);
@@ -701,30 +787,26 @@ function renderMatrix() {
     html += `<div class="quad-section"><div class="quad-header ${q.cls}"><span class="quad-label">${q.label}</span><span class="quad-count">${items.length}</span></div>`;
     html += items.map(n => {
       const path = getPath(n.id, nodes, []);
-      const pathStr = path && path.length ? path.join(' › ') : '';
+      const pathStr = path&&path.length ? path.join(' › ') : '';
       return `<div class="matrix-item">
         <div class="matrix-check" onclick="toggleDone('${n.id}')"></div>
         <div class="matrix-body">
           <div class="matrix-title">${esc(n.title)}</div>
-          ${pathStr ? `<div class="matrix-path">${esc(pathStr)}</div>` : ''}
+          ${pathStr?`<div class="matrix-path">${esc(pathStr)}</div>`:''}
         </div>
       </div>`;
     }).join('');
-    html += `</div>`;
+    html += '</div>';
   }
-
   if (!hideDone && done.length) {
     html += `<div class="quad-section"><div class="quad-header quad-header-done"><span class="quad-label">完了済み</span><span class="quad-count">${done.length}</span></div>`;
     html += done.map(n => `<div class="matrix-item matrix-done">
       <div class="matrix-check checked" onclick="toggleDone('${n.id}')">✓</div>
       <div class="matrix-body"><div class="matrix-title">${esc(n.title)}</div></div>
     </div>`).join('');
-    html += `</div>`;
+    html += '</div>';
   }
-
-  if (!active.length && (hideDone || !done.length)) {
-    html += `<div class="empty"><div class="empty-icon">◎</div><div>タスクなし</div></div>`;
-  }
+  if (!active.length && (hideDone||!done.length)) html += '<div class="empty"><div class="empty-icon">◎</div><div>タスクなし</div></div>';
   html += '</div>';
   return html;
 }
@@ -735,136 +817,280 @@ function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 //   ACTIONS
 // ══════════════════════
 function toggleExpand(id) {
-  const n = findNode(id, nodes);
-  if (!n) return;
+  const n = findNode(id, nodes); if (!n) return;
   n.expanded = n.expanded === false;
   render(); saveToDrive();
 }
-
 function toggleDone(id) {
-  const n = findNode(id, nodes);
-  if (!n) return;
-  n.done = !n.done;
-  render(); saveToDrive();
+  const n = findNode(id, nodes); if (!n) return;
+  n.done = !n.done; render(); saveToDrive();
 }
-
 function deleteNode(id) {
   if (!confirm('このノードと子をすべて削除しますか？')) return;
-  deleteNodeById(id, nodes);
-  render(); saveToDrive();
+  deleteNodeById(id, nodes); render(); saveToDrive();
 }
 
 // ══════════════════════
-//   FORM（追加 & 編集）
+//   FORM（ツリー追加・編集）
 // ══════════════════════
 function openForm(id, isEdit) {
   formEditId = isEdit ? id : null;
   formParentId = isEdit ? null : id;
-
   if (isEdit) {
-    // 編集モード：既存データを流し込む
-    const n = findNode(id, nodes);
-    if (!n) return;
+    const n = findNode(id, nodes); if (!n) return;
     formType = n.type; formPriority = n.priority;
     document.getElementById('form-title').textContent = 'ノードを編集';
     document.getElementById('form-subtitle').textContent = '';
     document.getElementById('f-title').value = n.title;
-    document.getElementById('f-note').value = n.note || '';
-    document.getElementById('f-interval').value = n.interval || '';
+    document.getElementById('f-note').value = n.note||'';
+    document.getElementById('f-interval').value = n.interval||'';
     document.getElementById('form-submit-btn').textContent = '保存する';
   } else {
-    // 追加モード
     formType = 'single'; formPriority = 'B';
     document.getElementById('form-title').textContent = 'ノードを追加';
-    if (id) {
-      const parent = findNode(id, nodes);
-      document.getElementById('form-subtitle').textContent = '親: ' + (parent ? parent.title : '');
-    } else {
-      document.getElementById('form-subtitle').textContent = 'ルートに追加';
-    }
+    const parent = id ? findNode(id, nodes) : null;
+    document.getElementById('form-subtitle').textContent = parent ? '親: '+parent.title : 'ルートに追加';
     document.getElementById('f-title').value = '';
     document.getElementById('f-note').value = '';
     document.getElementById('f-interval').value = '';
     document.getElementById('form-submit-btn').textContent = '追加する';
   }
-
-  document.getElementById('f-interval-wrap').style.display = formType === 'recurring' ? 'block' : 'none';
+  document.getElementById('f-interval-wrap').style.display = formType==='recurring' ? 'block' : 'none';
   refreshSeg();
   document.getElementById('form-overlay').classList.add('open');
   document.getElementById('form-sheet').classList.add('open');
   setTimeout(() => document.getElementById('f-title').focus(), 300);
 }
-
 function closeForm() {
   document.getElementById('form-overlay').classList.remove('open');
   document.getElementById('form-sheet').classList.remove('open');
 }
-
 function selectSeg(axis, val) {
-  if (axis === 'type') {
-    formType = val;
-    document.getElementById('f-interval-wrap').style.display = val === 'recurring' ? 'block' : 'none';
-  }
-  if (axis === 'priority') formPriority = val;
+  if (axis==='type') { formType=val; document.getElementById('f-interval-wrap').style.display=val==='recurring'?'block':'none'; }
+  if (axis==='priority') formPriority=val;
   refreshSeg();
 }
-
 function refreshSeg() {
-  document.querySelectorAll('#seg-type .seg-btn').forEach(b => {
-    b.className = 'seg-btn' + (b.dataset.val === formType ? ' sel-' + formType : '');
-  });
-  document.querySelectorAll('#seg-priority .seg-btn').forEach(b => {
-    b.className = 'seg-btn' + (b.dataset.val === formPriority ? ' sel-' + formPriority : '');
-  });
+  document.querySelectorAll('#seg-type .seg-btn').forEach(b => { b.className='seg-btn'+(b.dataset.val===formType?' sel-'+formType:''); });
+  document.querySelectorAll('#seg-priority .seg-btn').forEach(b => { b.className='seg-btn'+(b.dataset.val===formPriority?' sel-'+formPriority:''); });
 }
-
 function submitNode() {
   const title = document.getElementById('f-title').value.trim();
   if (!title) { document.getElementById('f-title').focus(); return; }
-  const note = document.getElementById('f-note').value.trim() || null;
-  const interval = document.getElementById('f-interval').value.trim() || null;
-
+  const note = document.getElementById('f-note').value.trim()||null;
+  const interval = document.getElementById('f-interval').value.trim()||null;
   if (formEditId) {
-    // 編集
     const n = findNode(formEditId, nodes);
-    if (n) { n.title = title; n.type = formType; n.priority = formPriority; n.note = note; n.interval = interval; }
+    if (n) { n.title=title; n.type=formType; n.priority=formPriority; n.note=note; n.interval=interval; }
   } else {
-    // 追加
-    const node = {
-      id: makeId(), title, type: formType, priority: formPriority,
-      note, interval, done: false, expanded: true, children: [], createdAt: Date.now(),
-    };
-    if (formParentId) {
-      const parent = findNode(formParentId, nodes);
-      if (parent) { parent.children = parent.children || []; parent.children.push(node); parent.expanded = true; }
-    } else {
-      nodes.push(node);
+    const node = { id:makeId(), title, type:formType, priority:formPriority, note, interval, done:false, expanded:true, children:[], createdAt:Date.now() };
+    if (formParentId) { const p=findNode(formParentId,nodes); if(p){p.children=p.children||[];p.children.push(node);p.expanded=true;} }
+    else nodes.push(node);
+  }
+  closeForm();
+  if (currentView!=='tree') switchView('tree'); else render();
+  saveToDrive();
+}
+
+// ══════════════════════
+//   CLARIFY
+// ══════════════════════
+function openClarify(inboxId) {
+  clarifyTargetId = inboxId;
+  const item = inbox.find(i => i.id === inboxId);
+  if (!item) return;
+  clType = 'single'; clPriority = 'B';
+  document.getElementById('cl-title').value = item.title;
+  document.getElementById('cl-note').value = '';
+  document.getElementById('cl-interval').value = '';
+  document.getElementById('cl-interval-wrap').style.display = 'none';
+  refreshClSeg();
+  // 親ノード選択肢を構築
+  const select = document.getElementById('cl-parent');
+  select.innerHTML = '<option value="">── ルートに追加 ──</option>';
+  getAllNodeOptions(nodes, 0, []).forEach(opt => {
+    const el = document.createElement('option');
+    el.value = opt.id; el.textContent = opt.label;
+    select.appendChild(el);
+  });
+  document.getElementById('clarify-overlay').classList.add('open');
+  document.getElementById('clarify-sheet').classList.add('open');
+}
+function closeClarify() {
+  document.getElementById('clarify-overlay').classList.remove('open');
+  document.getElementById('clarify-sheet').classList.remove('open');
+}
+function selectClSeg(axis, val) {
+  if (axis==='type') { clType=val; document.getElementById('cl-interval-wrap').style.display=val==='recurring'?'block':'none'; }
+  if (axis==='priority') clPriority=val;
+  refreshClSeg();
+}
+function refreshClSeg() {
+  document.querySelectorAll('#cl-seg-type .seg-btn').forEach(b => { b.className='seg-btn'+(b.dataset.val===clType?' sel-'+clType:''); });
+  document.querySelectorAll('#cl-seg-priority .seg-btn').forEach(b => { b.className='seg-btn'+(b.dataset.val===clPriority?' sel-'+clPriority:''); });
+}
+function submitClarify() {
+  const title = document.getElementById('cl-title').value.trim();
+  if (!title) return;
+  const note = document.getElementById('cl-note').value.trim()||null;
+  const interval = document.getElementById('cl-interval').value.trim()||null;
+  const parentId = document.getElementById('cl-parent').value;
+  const node = { id:makeId(), title, type:clType, priority:clPriority, note, interval, done:false, expanded:true, children:[], createdAt:Date.now() };
+  if (parentId) { const p=findNode(parentId,nodes); if(p){p.children=p.children||[];p.children.push(node);p.expanded=true;} }
+  else nodes.push(node);
+  inbox = inbox.filter(i => i.id !== clarifyTargetId);
+  closeClarify();
+  switchView('tree'); saveToDrive();
+}
+
+// ══════════════════════
+//   DRAG & DROP
+// ══════════════════════
+function initDragListeners() {
+  document.querySelectorAll('[data-drag-id]').forEach(handle => {
+    handle.addEventListener('mousedown', onDragStart);
+    handle.addEventListener('touchstart', onDragStart, { passive: false });
+  });
+}
+
+function onDragStart(e) {
+  const id = e.currentTarget.dataset.dragId;
+  if (!id) return;
+  if (e.type === 'touchstart') {
+    // 長押し開始
+    longPressTimer = setTimeout(() => {
+      startDrag(id, e.touches[0].clientX, e.touches[0].clientY);
+    }, 350);
+    document.addEventListener('touchmove', onTouchMove, { passive: false });
+    document.addEventListener('touchend', onTouchEnd);
+  } else {
+    // マウス即時開始
+    startDrag(id, e.clientX, e.clientY);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+    e.preventDefault();
+  }
+}
+
+function startDrag(id, x, y) {
+  isDragging = true;
+  dragNodeId = id;
+  const n = findNode(id, nodes);
+  ghost.textContent = n ? n.title : '';
+  ghost.style.display = 'block';
+  moveGhost(x, y);
+  document.getElementById('tnode-'+id)?.classList.add('dragging');
+}
+
+function moveGhost(x, y) {
+  ghost.style.left = (x + 12) + 'px';
+  ghost.style.top  = (y + 12) + 'px';
+}
+
+function onMouseMove(e) {
+  if (!isDragging) return;
+  moveGhost(e.clientX, e.clientY);
+  highlightDropTarget(e.clientX, e.clientY);
+}
+
+function onTouchMove(e) {
+  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+  if (!isDragging) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  moveGhost(t.clientX, t.clientY);
+  highlightDropTarget(t.clientX, t.clientY);
+}
+
+function highlightDropTarget(x, y) {
+  document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('active'));
+  document.querySelectorAll('.tree-node').forEach(n => n.classList.remove('drag-over'));
+  const el = document.elementFromPoint(x, y);
+  if (!el) return;
+  const zone = el.closest('.drop-zone');
+  if (zone) zone.classList.add('active');
+  else {
+    const node = el.closest('.tree-node');
+    if (node && node.dataset.id !== dragNodeId) node.classList.add('drag-over');
+  }
+}
+
+function onMouseUp(e) {
+  document.removeEventListener('mousemove', onMouseMove);
+  document.removeEventListener('mouseup', onMouseUp);
+  if (!isDragging) return;
+  finishDrag(e.clientX, e.clientY);
+}
+
+function onTouchEnd(e) {
+  clearTimeout(longPressTimer); longPressTimer = null;
+  document.removeEventListener('touchmove', onTouchMove);
+  document.removeEventListener('touchend', onTouchEnd);
+  if (!isDragging) return;
+  const t = e.changedTouches[0];
+  finishDrag(t.clientX, t.clientY);
+}
+
+function finishDrag(x, y) {
+  isDragging = false;
+  ghost.style.display = 'none';
+  document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('active'));
+  document.querySelectorAll('.tree-node').forEach(n => n.classList.remove('dragging', 'drag-over'));
+
+  const el = document.elementFromPoint(x, y);
+  if (!el || !dragNodeId) { dragNodeId = null; return; }
+
+  // ドロップゾーンへのドロップ（並び替え）
+  const zone = el.closest('.drop-zone');
+  const targetNode = el.closest('.tree-node');
+
+  if (zone) {
+    const parentId = zone.dataset.dropParent;
+    performDrop(dragNodeId, parentId === 'root' ? null : parentId);
+  } else if (targetNode && targetNode.dataset.id !== dragNodeId) {
+    // ノードへのドロップ（子として追加）
+    const targetId = targetNode.dataset.id;
+    if (!isAncestorOf(dragNodeId, targetId)) {
+      performDrop(dragNodeId, targetId);
     }
   }
+  dragNodeId = null;
+}
 
-  closeForm();
-  if (currentView !== 'tree') switchView('tree');
-  else render();
-  saveToDrive();
+function isAncestorOf(srcId, dstId) {
+  // srcが dstの祖先ならtrue（循環防止）
+  const src = findNode(srcId, nodes); if (!src) return false;
+  return !!findNode(dstId, src.children||[]);
+}
+
+function performDrop(srcId, newParentId) {
+  if (srcId === newParentId) return;
+  if (newParentId && isAncestorOf(srcId, newParentId)) return;
+  const node = findNode(srcId, nodes); if (!node) return;
+  // 元の場所から除去
+  deleteNodeById(srcId, nodes);
+  // 新しい場所に追加
+  if (newParentId) {
+    const p = findNode(newParentId, nodes);
+    if (p) { p.children = p.children||[]; p.children.push(node); p.expanded = true; }
+    else nodes.push(node);
+  } else {
+    nodes.push(node);
+  }
+  render(); saveToDrive();
 }
 
 // ══════════════════════
 //   MENU
 // ══════════════════════
-function openMenu() {
-  document.getElementById('menu-overlay').classList.add('open');
-  document.getElementById('menu-sheet').classList.add('open');
-}
-function closeMenu() {
-  document.getElementById('menu-overlay').classList.remove('open');
-  document.getElementById('menu-sheet').classList.remove('open');
-}
+function openMenu() { document.getElementById('menu-overlay').classList.add('open'); document.getElementById('menu-sheet').classList.add('open'); }
+function closeMenu() { document.getElementById('menu-overlay').classList.remove('open'); document.getElementById('menu-sheet').classList.remove('open'); }
 
 // ══════════════════════
 //   KEYBOARD
 // ══════════════════════
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeForm(); closeMenu(); }
+  if (e.key === 'Escape') { closeForm(); closeMenu(); closeClarify(); }
   if (e.key === 'Enter' && e.ctrlKey) submitNode();
 });
 
