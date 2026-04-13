@@ -292,6 +292,200 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 
 /* DRAG GHOST */
 #drag-ghost { position: fixed; pointer-events: none; z-index: 9999; opacity: .85; border-radius: 10px; background: var(--surface); border: 1px solid var(--accent); padding: 10px 14px; font-size: 14px; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 8px 30px #0008; display: none; }
+
+/* ══════════════════════════
+   TIMELINE VIEW
+══════════════════════════ */
+.timeline-wrap {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 左固定列 + 右スクロール列の2カラム構造 */
+.timeline-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.tl-left {
+  width: 140px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+  z-index: 3;
+}
+
+.tl-right {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+.tl-right::-webkit-scrollbar { display: none; }
+
+/* ヘッダー行（月/週ラベル） */
+.tl-header-left {
+  height: 48px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--muted);
+  flex-shrink: 0;
+}
+
+.tl-header-right {
+  height: 48px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.tl-month-label {
+  position: absolute;
+  top: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--muted);
+  white-space: nowrap;
+  padding-left: 4px;
+}
+
+.tl-week-label {
+  position: absolute;
+  bottom: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: var(--border);
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* スクロール同期用コンテナ */
+.tl-scroll-container {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;
+}
+.tl-scroll-container::-webkit-scrollbar { display: none; }
+
+.tl-rows-left {
+  /* 左列のrow群 */
+}
+
+.tl-rows-right {
+  position: relative;
+  /* 右列のrow群 */
+}
+
+/* 今日線 */
+.tl-today-line {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: var(--a);
+  opacity: .7;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* グリッド縦線 */
+.tl-grid-line {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 1px;
+  background: var(--border);
+  opacity: .4;
+  pointer-events: none;
+}
+
+/* 各行 */
+.tl-row {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+.tl-row-left {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  padding: 0 8px;
+  gap: 6px;
+  overflow: hidden;
+}
+
+/* 親ノードは強調 */
+.tl-row-left.is-parent {
+  background: var(--surface);
+}
+.tl-row-left.is-parent .tl-node-title {
+  font-weight: 500;
+  color: var(--text);
+}
+.tl-row.is-parent {
+  background: var(--surface);
+}
+
+.tl-node-title {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.tl-indent-bar {
+  width: 3px;
+  height: 24px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* 期日マーカー（棒） */
+.tl-deadline {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 18px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  white-space: nowrap;
+  cursor: pointer;
+  z-index: 1;
+  min-width: 8px;
+}
+
+.tl-deadline.ok     { background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent); }
+.tl-deadline.soon   { background: var(--b-dim);      border: 1px solid var(--b);      color: var(--b); }
+.tl-deadline.overdue{ background: var(--a-dim);      border: 1px solid var(--a);      color: var(--a); }
+.tl-deadline.done   { background: var(--c-dim);      border: 1px solid var(--c);      color: var(--c); opacity: .6; }
+
+.tl-no-deadline {
+  position: absolute;
+  top: 50%; transform: translateY(-50%);
+  font-size: 10px; color: var(--border);
+  left: 4px;
+}
+
+/* 期日なしの行 */
+.tl-row-right-empty { color: var(--border); font-size: 10px; }
+
 </style>
 </head>
 <body>
@@ -328,6 +522,9 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
   <button class="tab-btn" id="tab-matrix" onclick="switchView('matrix')">
     <span class="tab-icon">⊞</span>マトリクス
   </button>
+  <button class="tab-btn" id="tab-timeline" onclick="switchView('timeline')">
+    <span class="tab-icon">📅</span>期日
+  </button>
 </nav>
 
 <!-- FORM SHEET（ツリー追加・編集） -->
@@ -357,6 +554,8 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
     <div class="field-label">繰り返し</div>
     <input class="f-input" id="f-interval" placeholder="例：毎週月曜" />
   </div>
+  <div class="field-label">期日（任意）</div>
+  <input class="f-input" id="f-deadline" type="date" />
   <div class="sheet-actions">
     <button class="btn btn-ghost" onclick="closeForm()">キャンセル</button>
     <button class="btn btn-primary" id="form-submit-btn" onclick="submitNode()">追加する</button>
@@ -390,6 +589,8 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
     <div class="field-label">繰り返し</div>
     <input class="f-input" id="cl-interval" placeholder="例：毎週月曜" />
   </div>
+  <div class="field-label">期日（任意）</div>
+  <input class="f-input" id="cl-deadline" type="date" />
   <div class="field-label">親ノード（ツリー上の位置）</div>
   <select class="f-select" id="cl-parent">
     <option value="">── ルートに追加 ──</option>
@@ -620,7 +821,7 @@ function switchView(v) {
   currentView = v;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + v).classList.add('active');
-  const labels = { inbox: 'Inbox', tree: 'ツリー', matrix: 'マトリクス' };
+  const labels = { inbox: 'Inbox', tree: 'ツリー', matrix: 'マトリクス', timeline: 'タイムライン' };
   document.getElementById('header-title').textContent = labels[v];
   render();
 }
@@ -639,6 +840,7 @@ function render() {
   const el = document.getElementById('content');
   if (currentView === 'inbox') el.innerHTML = renderInbox();
   else if (currentView === 'tree') el.innerHTML = renderTree();
+  else if (currentView === 'timeline') { el.innerHTML = renderTimeline(); initTimelineSync(); }
   else el.innerHTML = renderMatrix();
   if (currentView === 'tree') initDragListeners();
 }
@@ -727,6 +929,14 @@ function renderTreeNode(n) {
 
   const noteHtml = n.note ? `<div class="node-note">${esc(n.note)}</div>` : '';
   const recurHtml = n.type==='recurring'&&n.interval ? `<div class="node-note" style="color:var(--recur)">↻ ${esc(n.interval)}</div>` : '';
+  let deadlineHtml = '';
+  if (n.deadline) {
+    const dl = new Date(n.deadline); const today = new Date(); today.setHours(0,0,0,0);
+    const diff = Math.ceil((dl - today) / 86400000);
+    const dlColor = n.done ? 'var(--c)' : diff < 0 ? 'var(--a)' : diff <= 3 ? 'var(--b)' : 'var(--muted)';
+    const dlLabel = diff < 0 ? `期限切れ ${Math.abs(diff)}日前` : diff === 0 ? '今日' : `${diff}日後`;
+    deadlineHtml = `<div class="node-note" style="color:${dlColor}">📅 ${n.deadline}（${dlLabel}）</div>`;
+  }
 
   let progressHtml = '';
   if (hasChildren) {
@@ -752,7 +962,7 @@ function renderTreeNode(n) {
         <div class="node-body">
           <div class="node-title">${esc(n.title)}</div>
           <div class="node-meta"><span class="badge ${bPri}">${n.priority}</span><span class="badge ${bType}">${typeLabel}</span></div>
-          ${noteHtml}${recurHtml}${progressHtml}
+          ${noteHtml}${recurHtml}${deadlineHtml}${progressHtml}
         </div>
         <div class="node-actions">
           <button class="node-act-btn add-child" onclick="openForm('${n.id}',false)" title="子を追加">＋</button>
@@ -844,6 +1054,7 @@ function openForm(id, isEdit) {
     document.getElementById('f-title').value = n.title;
     document.getElementById('f-note').value = n.note||'';
     document.getElementById('f-interval').value = n.interval||'';
+    document.getElementById('f-deadline').value = n.deadline||'';
     document.getElementById('form-submit-btn').textContent = '保存する';
   } else {
     formType = 'single'; formPriority = 'B';
@@ -853,6 +1064,7 @@ function openForm(id, isEdit) {
     document.getElementById('f-title').value = '';
     document.getElementById('f-note').value = '';
     document.getElementById('f-interval').value = '';
+    document.getElementById('f-deadline').value = '';
     document.getElementById('form-submit-btn').textContent = '追加する';
   }
   document.getElementById('f-interval-wrap').style.display = formType==='recurring' ? 'block' : 'none';
@@ -879,11 +1091,12 @@ function submitNode() {
   if (!title) { document.getElementById('f-title').focus(); return; }
   const note = document.getElementById('f-note').value.trim()||null;
   const interval = document.getElementById('f-interval').value.trim()||null;
+  const deadline = document.getElementById('f-deadline').value||null;
   if (formEditId) {
     const n = findNode(formEditId, nodes);
-    if (n) { n.title=title; n.type=formType; n.priority=formPriority; n.note=note; n.interval=interval; }
+    if (n) { n.title=title; n.type=formType; n.priority=formPriority; n.note=note; n.interval=interval; n.deadline=deadline; }
   } else {
-    const node = { id:makeId(), title, type:formType, priority:formPriority, note, interval, done:false, expanded:true, children:[], createdAt:Date.now() };
+    const node = { id:makeId(), title, type:formType, priority:formPriority, note, interval, deadline, done:false, expanded:true, children:[], createdAt:Date.now() };
     if (formParentId) { const p=findNode(formParentId,nodes); if(p){p.children=p.children||[];p.children.push(node);p.expanded=true;} }
     else nodes.push(node);
   }
@@ -934,8 +1147,9 @@ function submitClarify() {
   if (!title) return;
   const note = document.getElementById('cl-note').value.trim()||null;
   const interval = document.getElementById('cl-interval').value.trim()||null;
+  const deadline = document.getElementById('cl-deadline').value||null;
   const parentId = document.getElementById('cl-parent').value;
-  const node = { id:makeId(), title, type:clType, priority:clPriority, note, interval, done:false, expanded:true, children:[], createdAt:Date.now() };
+  const node = { id:makeId(), title, type:clType, priority:clPriority, note, interval, deadline, done:false, expanded:true, children:[], createdAt:Date.now() };
   if (parentId) { const p=findNode(parentId,nodes); if(p){p.children=p.children||[];p.children.push(node);p.expanded=true;} }
   else nodes.push(node);
   inbox = inbox.filter(i => i.id !== clarifyTargetId);
@@ -1113,6 +1327,143 @@ function performDrop(srcId, newParentId, insertIdx) {
   }
 
   render(); saveToDrive();
+}
+
+
+// ══════════════════════
+//   TIMELINE
+// ══════════════════════
+const DAY_W = 28; // 1日あたりのpx幅
+
+function renderTimeline() {
+  // 全ノードを階層順にフラット化（hideDone対応）
+  const rows = [];
+  function collectRows(arr, depth) {
+    for (const n of arr) {
+      if (hideDone && n.done) continue;
+      const hasChildren = (n.children||[]).length > 0;
+      rows.push({ node: n, depth, isParent: hasChildren });
+      if (n.expanded !== false) collectRows(n.children||[], depth+1);
+    }
+  }
+  collectRows(nodes, 0);
+
+  // 期日の範囲を決定（今日±45日、ただし期日があればそれを含む）
+  const today = new Date(); today.setHours(0,0,0,0);
+  let minDate = new Date(today); minDate.setDate(minDate.getDate() - 14);
+  let maxDate = new Date(today); maxDate.setDate(maxDate.getDate() + 60);
+  for (const { node } of rows) {
+    if (node.deadline) {
+      const d = new Date(node.deadline);
+      if (d < minDate) { minDate = new Date(d); minDate.setDate(minDate.getDate()-7); }
+      if (d > maxDate) { maxDate = new Date(d); maxDate.setDate(maxDate.getDate()+7); }
+    }
+  }
+
+  const totalDays = Math.ceil((maxDate - minDate) / 86400000);
+  const totalW = totalDays * DAY_W;
+  const todayOffset = Math.ceil((today - minDate) / 86400000) * DAY_W;
+
+  // 週ラベル生成
+  let headerHTML = `<div class="tl-header-right" style="width:${totalW}px;position:relative;">`;
+  let curMonth = -1;
+  for (let i = 0; i < totalDays; i++) {
+    const d = new Date(minDate); d.setDate(d.getDate()+i);
+    if (d.getMonth() !== curMonth) {
+      curMonth = d.getMonth();
+      headerHTML += `<span class="tl-month-label" style="left:${i*DAY_W}px">${d.getMonth()+1}月</span>`;
+    }
+    if (d.getDay() === 1) { // 月曜
+      const label = `${d.getDate()}`;
+      headerHTML += `<span class="tl-week-label" style="left:${i*DAY_W}px;width:${DAY_W*7}px">${label}</span>`;
+    }
+  }
+  headerHTML += '</div>';
+
+  // グリッド縦線
+  let gridHTML = '';
+  for (let i = 0; i < totalDays; i++) {
+    const d = new Date(minDate); d.setDate(d.getDate()+i);
+    if (d.getDay() === 1) gridHTML += `<div class="tl-grid-line" style="left:${i*DAY_W}px"></div>`;
+  }
+  // 今日線
+  gridHTML += `<div class="tl-today-line" style="left:${todayOffset}px"></div>`;
+
+  // 行生成
+  let leftHTML = '';
+  let rightHTML = '';
+
+  for (const { node: n, depth, isParent } of rows) {
+    const parentCls = isParent ? 'is-parent' : '';
+    const barColor = `var(--${n.priority.toLowerCase() === 'a' ? 'a' : n.priority.toLowerCase() === 'b' ? 'b' : n.priority.toLowerCase() === 'c' ? 'c' : 'd'})`;
+
+    // 左列
+    leftHTML += `<div class="tl-row-left ${parentCls}" style="padding-left:${8 + depth*12}px">
+      <div class="tl-indent-bar" style="background:${barColor}"></div>
+      <span class="tl-node-title" title="${esc(n.title)}">${esc(n.title)}</span>
+    </div>`;
+
+    // 右列（期日マーカー）
+    let markerHTML = '';
+    if (n.deadline) {
+      const dl = new Date(n.deadline);
+      const offset = Math.ceil((dl - minDate) / 86400000) * DAY_W;
+      const diff = Math.ceil((dl - today) / 86400000);
+      const cls = n.done ? 'done' : diff < 0 ? 'overdue' : diff <= 3 ? 'soon' : 'ok';
+      const label = diff < 0 ? `${Math.abs(diff)}d超過` : diff === 0 ? '今日' : `${diff}d`;
+      markerHTML = `<div class="tl-deadline ${cls}" style="left:${offset-2}px" onclick="quickEditDeadline('${n.id}')" title="${n.deadline}">${label}</div>`;
+    }
+    rightHTML += `<div class="tl-row ${parentCls}" style="width:${totalW}px">${markerHTML}</div>`;
+  }
+
+  if (!rows.length) {
+    return '<div class="empty" style="margin-top:60px"><div class="empty-icon">📅</div><div>ノードなし</div></div>';
+  }
+
+  return `<div class="timeline-wrap">
+    <div style="display:flex;flex-shrink:0;border-bottom:1px solid var(--border)">
+      <div class="tl-header-left">ノード</div>
+      <div style="flex:1;overflow:hidden" id="tl-header-scroll">
+        ${headerHTML}
+      </div>
+    </div>
+    <div class="timeline-body">
+      <div class="tl-left" id="tl-left-scroll">
+        ${leftHTML}
+      </div>
+      <div class="tl-right" id="tl-right-scroll">
+        <div class="tl-rows-right" style="position:relative;width:${totalW}px">
+          ${gridHTML}
+          ${rightHTML}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function initTimelineSync() {
+  // 横スクロール同期（右列ヘッダーと本体）
+  const rightScroll = document.getElementById('tl-right-scroll');
+  const headerScroll = document.getElementById('tl-header-scroll');
+  if (!rightScroll || !headerScroll) return;
+
+  rightScroll.addEventListener('scroll', () => {
+    headerScroll.scrollLeft = rightScroll.scrollLeft;
+  }, { passive: true });
+
+  // 今日付近に初期スクロール
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayOffset = 14 * DAY_W; // minDateは今日-14日
+  setTimeout(() => {
+    rightScroll.scrollLeft = Math.max(0, todayOffset - 60);
+    headerScroll.scrollLeft = rightScroll.scrollLeft;
+  }, 50);
+}
+
+function quickEditDeadline(nodeId) {
+  const n = findNode(nodeId, nodes);
+  if (!n) return;
+  openForm(nodeId, true);
 }
 
 // ══════════════════════
