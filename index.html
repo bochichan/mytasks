@@ -312,7 +312,7 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 }
 
 .tl-left {
-  width: 140px;
+  width: 180px;
   flex-shrink: 0;
   overflow: hidden;
   border-right: 1px solid var(--border);
@@ -339,6 +339,7 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px; color: var(--muted);
   flex-shrink: 0;
+  width: 180px;
 }
 
 .tl-header-right {
@@ -360,11 +361,17 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 
 .tl-week-label {
   position: absolute;
-  bottom: 4px;
+  bottom: 4px; left: 2px;
   font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  white-space: nowrap;
+}
+.tl-week-day {
+  position: absolute;
+  bottom: 0px; left: 2px;
+  font-family: 'Noto Sans JP', sans-serif;
   font-size: 9px; color: var(--border);
   white-space: nowrap;
-  text-align: center;
 }
 
 /* スクロール同期用コンテナ */
@@ -1374,8 +1381,16 @@ function renderTimeline() {
       headerHTML += `<span class="tl-month-label" style="left:${i*DAY_W}px">${d.getMonth()+1}月</span>`;
     }
     if (d.getDay() === 1) { // 月曜
-      const label = `${d.getDate()}`;
-      headerHTML += `<span class="tl-week-label" style="left:${i*DAY_W}px;width:${DAY_W*7}px">${label}</span>`;
+      const days = ['日','月','火','水','木','金','土'];
+      const dateLabel = `${d.getMonth()+1}/${d.getDate()}`;
+      headerHTML += `<span class="tl-week-label" style="left:${i*DAY_W+2}px">${dateLabel}</span>`;
+    }
+    // 各日付に曜日を薄く表示
+    if (DAY_W >= 20) {
+      const days = ['日','月','火','水','木','金','土'];
+      const dow = d.getDay();
+      const color = dow === 0 ? 'var(--a)' : dow === 6 ? 'var(--d)' : 'var(--border)';
+      headerHTML += `<span style="position:absolute;bottom:2px;left:${i*DAY_W+2}px;font-size:8px;color:${color};font-family:'Noto Sans JP',sans-serif">${days[dow]}</span>`;
     }
   }
   headerHTML += '</div>';
@@ -1384,7 +1399,9 @@ function renderTimeline() {
   let gridHTML = '';
   for (let i = 0; i < totalDays; i++) {
     const d = new Date(minDate); d.setDate(d.getDate()+i);
-    if (d.getDay() === 1) gridHTML += `<div class="tl-grid-line" style="left:${i*DAY_W}px"></div>`;
+    const dow = d.getDay();
+    if (dow === 1) gridHTML += `<div class="tl-grid-line" style="left:${i*DAY_W}px"></div>`;
+    if (dow === 0 || dow === 6) gridHTML += `<div style="position:absolute;left:${i*DAY_W}px;top:0;bottom:0;width:${DAY_W}px;background:${dow===0?'#ff6b6b08':'#4a9eff06'};pointer-events:none"></div>`;
   }
   // 今日線
   gridHTML += `<div class="tl-today-line" style="left:${todayOffset}px"></div>`;
