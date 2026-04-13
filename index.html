@@ -340,6 +340,7 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
   font-size: 10px; color: var(--muted);
   flex-shrink: 0;
   width: 180px;
+  box-sizing: border-box;
 }
 
 .tl-header-right {
@@ -1371,29 +1372,36 @@ function renderTimeline() {
   const totalW = totalDays * DAY_W;
   const todayOffset = Math.ceil((today - minDate) / 86400000) * DAY_W;
 
-  // 週ラベル生成
-  let headerHTML = `<div class="tl-header-right" style="width:${totalW}px;position:relative;">`;
+  // ヘッダー2段構造：上段=月ラベル、下段=週ラベル+曜日
+  const DAYS_JA = ['日','月','火','水','木','金','土'];
+  // 上段：月ラベル
+  let monthRowHTML = `<div style="position:relative;height:22px;width:${totalW}px;border-bottom:1px solid var(--border)">`;
   let curMonth = -1;
   for (let i = 0; i < totalDays; i++) {
     const d = new Date(minDate); d.setDate(d.getDate()+i);
     if (d.getMonth() !== curMonth) {
       curMonth = d.getMonth();
-      headerHTML += `<span class="tl-month-label" style="left:${i*DAY_W}px">${d.getMonth()+1}月</span>`;
-    }
-    if (d.getDay() === 1) { // 月曜
-      const days = ['日','月','火','水','木','金','土'];
-      const dateLabel = `${d.getMonth()+1}/${d.getDate()}`;
-      headerHTML += `<span class="tl-week-label" style="left:${i*DAY_W+2}px">${dateLabel}</span>`;
-    }
-    // 各日付に曜日を薄く表示
-    if (DAY_W >= 20) {
-      const days = ['日','月','火','水','木','金','土'];
-      const dow = d.getDay();
-      const color = dow === 0 ? 'var(--a)' : dow === 6 ? 'var(--d)' : 'var(--border)';
-      headerHTML += `<span style="position:absolute;bottom:2px;left:${i*DAY_W+2}px;font-size:8px;color:${color};font-family:'Noto Sans JP',sans-serif">${days[dow]}</span>`;
+      monthRowHTML += `<span style="position:absolute;left:${i*DAY_W+3}px;top:4px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);font-weight:600">${d.getMonth()+1}月</span>`;
     }
   }
-  headerHTML += '</div>';
+  monthRowHTML += '</div>';
+
+  // 下段：日付（月曜のみ）+ 各日の曜日
+  let dayRowHTML = `<div style="position:relative;height:26px;width:${totalW}px">`;
+  for (let i = 0; i < totalDays; i++) {
+    const d = new Date(minDate); d.setDate(d.getDate()+i);
+    const dow = d.getDay();
+    const dowColor = dow === 0 ? 'var(--a)' : dow === 6 ? 'var(--d)' : 'var(--border)';
+    // 月曜に日付ラベル
+    if (dow === 1) {
+      dayRowHTML += `<span style="position:absolute;left:${i*DAY_W+2}px;top:2px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:var(--muted)">${d.getDate()}</span>`;
+    }
+    // 全日に曜日
+    dayRowHTML += `<span style="position:absolute;bottom:2px;left:${i*DAY_W+2}px;font-size:8px;color:${dowColor};font-family:'Noto Sans JP',sans-serif">${DAYS_JA[dow]}</span>`;
+  }
+  dayRowHTML += '</div>';
+
+  let headerHTML = `<div style="width:${totalW}px">${monthRowHTML}${dayRowHTML}</div>`;
 
   // グリッド縦線
   let gridHTML = '';
