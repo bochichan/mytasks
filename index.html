@@ -664,27 +664,58 @@ function initGIS() {
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID, scope: SCOPE,
     callback: async (resp) => {
-      if (resp.error) { setSyncStatus('err', 'ログイン失敗'); return; }
+      if (resp.error) {
+        setSyncStatus('err', 'ログイン失敗');
+        // サイレント失敗時はログイン画面を出す
+        document.getElementById('login-screen').classList.remove('hidden');
+        return;
+      }
       accessToken = resp.access_token;
+      // トークン取得時刻を記録（有効期限管理用）
       localStorage.setItem(LS_TOKEN, accessToken);
+      localStorage.setItem(LS_TOKEN + '_ts', Date.now().toString());
       document.getElementById('login-screen').classList.add('hidden');
       await syncFromDrive();
     },
   });
+
   const saved = localStorage.getItem(LS_TOKEN);
   if (saved) {
     accessToken = saved;
     document.getElementById('login-screen').classList.add('hidden');
     syncFromDrive().catch(() => {
-      accessToken = null; localStorage.removeItem(LS_TOKEN);
-      document.getElementById('login-screen').classList.remove('hidden');
+      // 401エラー→トークン切れ→サイレント再取得を試みる
+      accessToken = null;
+      silentSignIn();
     });
   }
+
+  // 50分ごとにバックグラウンドでトークンを自動更新
+  setInterval(() => {
+    if (accessToken) silentSignIn();
+  }, 50 * 60 * 1000);
 }
-function signIn() { tokenClient.requestAccessToken({ prompt: 'consent' }); }
+
+function silentSignIn() {
+  // prompt: '' でポップアップなしのサイレント再取得を試みる
+  // 失敗してもエラーにはせず、次の操作時にログイン画面を出す
+  try {
+    tokenClient.requestAccessToken({ prompt: '' });
+  } catch(e) {
+    // サイレント取得非対応の環境では何もしない
+  }
+}
+
+function signIn() {
+  // 明示的ログイン（初回・サイレント失敗後）
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
 function signOut() {
   if (accessToken) google.accounts.oauth2.revoke(accessToken);
-  accessToken = null; localStorage.removeItem(LS_TOKEN);
+  accessToken = null;
+  localStorage.removeItem(LS_TOKEN);
+  localStorage.removeItem(LS_TOKEN + '_ts');
   document.getElementById('login-screen').classList.remove('hidden');
 }
 
