@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>タスク</title>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
 
@@ -623,20 +622,11 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 <div id="drag-ghost"></div>
 
 <script>
-const CLIENT_ID = '741303706363-kgdmf1pot1c86sv0poncpiehmcop81d9.apps.googleusercontent.com';
-const SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
-const FILE_NAME = 'tasks.json';
+const WORKER = 'https://mytasks.kinoerumesu2000.workers.dev';
 const LS_KEY = 'sasami_tasks_v4';
-const LS_TOKEN = 'sasami_gtoken';
 
-// DATA
-// nodes: ツリー構造
-// inbox: [{id, title, createdAt}] ── 未分類タスク
 let nodes = [];
 let inbox = [];
-let accessToken = null;
-let driveFileId = null;
-let tokenClient = null;
 let currentView = 'inbox';
 let hideDone = false;
 
@@ -658,140 +648,88 @@ let isDragging = false;
 const ghost = document.getElementById('drag-ghost');
 
 // ══════════════════════
-//   AUTH
+//   AUTH（Workerベース）
 // ══════════════════════
-function initGIS() {
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID, scope: SCOPE,
-    callback: async (resp) => {
-      if (resp.error) {
-        setSyncStatus('err', 'ログイン失敗');
-        // サイレント失敗時はログイン画面を出す
-        document.getElementById('login-screen').classList.remove('hidden');
-        return;
-      }
-      accessToken = resp.access_token;
-      // トークン取得時刻を記録（有効期限管理用）
-      localStorage.setItem(LS_TOKEN, accessToken);
-      localStorage.setItem(LS_TOKEN + '_ts', Date.now().toString());
+async function checkAuth() {
+  try {
+    const res = await fetch(`${WORKER}/auth/status`, { credentials: 'include' });
+    const data = await res.json();
+    if (data.loggedIn) {
       document.getElementById('login-screen').classList.add('hidden');
       await syncFromDrive();
-    },
-  });
-
-  const saved = localStorage.getItem(LS_TOKEN);
-  if (saved) {
-    accessToken = saved;
+    } else {
+      document.getElementById('login-screen').classList.remove('hidden');
+    }
+  } catch {
+    // オフライン時はローカルキャッシュで動作
+    const local = localStorage.getItem(LS_KEY);
+    if (local) { const d = JSON.parse(local); nodes = d.nodes||[]; inbox = d.inbox||[]; }
     document.getElementById('login-screen').classList.add('hidden');
-    syncFromDrive().catch(() => {
-      // 401エラー→トークン切れ→サイレント再取得を試みる
-      accessToken = null;
-      silentSignIn();
-    });
-  }
-
-  // 50分ごとにバックグラウンドでトークンを自動更新
-  setInterval(() => {
-    if (accessToken) silentSignIn();
-  }, 50 * 60 * 1000);
-}
-
-function silentSignIn() {
-  // prompt: '' でポップアップなしのサイレント再取得を試みる
-  // 失敗してもエラーにはせず、次の操作時にログイン画面を出す
-  try {
-    tokenClient.requestAccessToken({ prompt: '' });
-  } catch(e) {
-    // サイレント取得非対応の環境では何もしない
+    render();
   }
 }
 
 function signIn() {
-  // 明示的ログイン（初回・サイレント失敗後）
-  tokenClient.requestAccessToken({ prompt: 'consent' });
+  // WorkerのOAuthフローへリダイレクト
+  window.location.href = `${WORKER}/login`;
 }
 
-function signOut() {
-  if (accessToken) google.accounts.oauth2.revoke(accessToken);
-  accessToken = null;
-  localStorage.removeItem(LS_TOKEN);
-  localStorage.removeItem(LS_TOKEN + '_ts');
+async function signOut() {
+  try { await fetch(`${WORKER}/auth/logout`, { method: 'POST', credentials: 'include' }); } catch {}
   document.getElementById('login-screen').classList.remove('hidden');
 }
 
 // ══════════════════════
-//   DRIVE
+//   DRIVE（Worker経由）
 // ══════════════════════
-async function driveReq(method, path, params, body) {
-  const url = new URL('https://www.googleapis.com' + path);
-  if (params) Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
-  const opts = { method, headers: { Authorization: 'Bearer ' + accessToken } };
-  if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
-  const res = await fetch(url, opts);
-  if (res.status === 401) throw new Error('401');
-  return res;
-}
-async function findFile() {
-  const res = await driveReq('GET', '/drive/v3/files', { spaces: 'appDataFolder', q: `name='${FILE_NAME}'`, fields: 'files(id)' });
-  return (await res.json()).files?.[0]?.id || null;
-}
-async function readFile(id) { return await (await driveReq('GET', `/drive/v3/files/${id}`, { alt: 'media' })).json(); }
-async function createFile(content) {
-  const b = 'bnd';
-  const meta = JSON.stringify({ name: FILE_NAME, parents: ['appDataFolder'] });
-  const body = `--${b}\r\nContent-Type: application/json\r\n\r\n${meta}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(content)}\r\n--${b}--`;
-  return (await (await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
-    method: 'POST', headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': `multipart/related; boundary=${b}` }, body,
-  })).json()).id;
-}
-async function updateFile(id, content) {
-  await fetch(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`, {
-    method: 'PATCH', headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
-    body: JSON.stringify(content),
-  });
-}
 function getData() { return { nodes, inbox }; }
+
 async function syncFromDrive() {
   setSyncStatus('busy', '読込中…');
   try {
-    driveFileId = await findFile();
-    if (driveFileId) {
-      const data = await readFile(driveFileId);
-      nodes = data.nodes || []; inbox = data.inbox || [];
-    } else {
-      nodes = []; inbox = [];
-      driveFileId = await createFile(getData());
+    const res = await fetch(`${WORKER}/tasks`, { credentials: 'include' });
+    if (res.status === 401) {
+      document.getElementById('login-screen').classList.remove('hidden');
+      return;
     }
+    const data = await res.json();
+    nodes = data.nodes || []; inbox = data.inbox || [];
     localStorage.setItem(LS_KEY, JSON.stringify(getData()));
     setSyncStatus('ok', '同期済み'); render();
   } catch {
-    setSyncStatus('err', '同期失敗');
+    setSyncStatus('err', 'オフライン');
     const local = localStorage.getItem(LS_KEY);
     if (local) { const d = JSON.parse(local); nodes = d.nodes||[]; inbox = d.inbox||[]; }
     render();
   }
 }
+
 async function saveToDrive() {
   const data = getData();
   localStorage.setItem(LS_KEY, JSON.stringify(data));
-  if (!accessToken || !driveFileId) return;
-  setSyncStatus('busy', '保存中…');
-  try { await updateFile(driveFileId, data); setSyncStatus('ok', '保存済み'); }
-  catch { setSyncStatus('err', '保存失敗'); }
-}
-async function forceSyncToDrive() {
   setSyncStatus('busy', '保存中…');
   try {
-    if (!driveFileId) driveFileId = await findFile();
-    if (driveFileId) await updateFile(driveFileId, getData());
-    else driveFileId = await createFile(getData());
+    const res = await fetch(`${WORKER}/tasks`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (res.status === 401) {
+      setSyncStatus('err', '再ログイン必要');
+      document.getElementById('login-screen').classList.remove('hidden');
+      return;
+    }
     setSyncStatus('ok', '保存済み');
   } catch { setSyncStatus('err', '保存失敗'); }
 }
+
+async function forceSyncToDrive() {
+  await saveToDrive();
+}
+
 function setSyncStatus(t, m) { const el = document.getElementById('sync-status'); el.className = 'sync-status ' + t; el.textContent = m; }
 
-// ══════════════════════
-//   TREE UTILS
 // ══════════════════════
 function makeId() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 function findNode(id, arr) {
@@ -1560,9 +1498,12 @@ document.addEventListener('keydown', e => {
 //   INIT
 // ══════════════════════
 window.onload = () => {
-  const wait = setInterval(() => {
-    if (window.google?.accounts?.oauth2) { clearInterval(wait); initGIS(); }
-  }, 100);
+  // ログイン後のリダイレクト判定
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('login') === 'ok') {
+    history.replaceState({}, '', window.location.pathname);
+  }
+  checkAuth();
 };
 </script>
 </body>
