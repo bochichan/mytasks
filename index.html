@@ -135,12 +135,6 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 .bar-a { background: var(--a); } .bar-b { background: var(--b); }
 .bar-c { background: var(--c); } .bar-d { background: var(--d); }
 
-.drag-handle {
-  width: 20px; height: 28px; display: flex; align-items: center; justify-content: center;
-  color: var(--border); font-size: 14px; cursor: grab; flex-shrink: 0;
-  touch-action: none; user-select: none;
-}
-.drag-handle:active { cursor: grabbing; color: var(--muted); }
 
 .node-expand {
   width: 24px; height: 24px; border-radius: 6px; border: none;
@@ -194,12 +188,6 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 }
 .node-children .tree-node { margin-bottom: 0; }
 
-/* ドロップゾーン */
-.drop-zone {
-  height: 14px; border-radius: 3px; margin: -4px 0; padding: 4px 0; position: relative; z-index: 5;
-  transition: all .15s; background: transparent;
-}
-.drop-zone.active { height: 28px; background: var(--accent-dim); border: 2px dashed var(--accent); border-radius: 8px; }
 
 /* ══════════════════════════
    MATRIX VIEW
@@ -289,8 +277,6 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--muted); font-size: 13px; padding: 60px 0; }
 .empty-icon { font-size: 40px; opacity: .3; }
 
-/* DRAG GHOST */
-#drag-ghost { position: fixed; pointer-events: none; z-index: 9999; opacity: .85; border-radius: 10px; background: var(--surface); border: 1px solid var(--accent); padding: 10px 14px; font-size: 14px; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 8px 30px #0008; display: none; }
 
 /* ══════════════════════════
    TIMELINE VIEW
@@ -563,6 +549,10 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
   </div>
   <div class="field-label">期日（任意）</div>
   <input class="f-input" id="f-deadline" type="date" />
+  <div id="f-parent-wrap" style="display:none">
+    <div class="field-label">親ノードを変更</div>
+    <select class="f-select" id="f-parent"></select>
+  </div>
   <div class="sheet-actions">
     <button class="btn btn-ghost" onclick="closeForm()">キャンセル</button>
     <button class="btn btn-primary" id="form-submit-btn" onclick="submitNode()">追加する</button>
@@ -618,9 +608,6 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
   <div class="menu-item" onclick="signOut(); closeMenu()"><span class="menu-icon">⏻</span>ログアウト</div>
 </div>
 
-<!-- DRAG GHOST -->
-<div id="drag-ghost"></div>
-
 <script>
 const WORKER = 'https://mytasks.kinoerumesu2000.workers.dev';
 const LS_KEY = 'sasami_tasks_v4';
@@ -639,13 +626,9 @@ let clType = 'single';
 let clPriority = 'B';
 let clarifyTargetId = null;
 
-// drag state
-let dragNodeId = null;
-let dragSource = null; // 'tree' | 'inbox'
-let dragOverNodeId = null;
+// move state
 let longPressTimer = null;
 let isDragging = false;
-const ghost = document.getElementById('drag-ghost');
 
 // ══════════════════════
 //   AUTH（Workerベース）
@@ -819,7 +802,6 @@ function render() {
   else if (currentView === 'tree') el.innerHTML = renderTree();
   else if (currentView === 'timeline') { el.innerHTML = renderTimeline(); initTimelineSync(); }
   else el.innerHTML = renderMatrix();
-  if (currentView === 'tree') initDragListeners();
 }
 
 // ── INBOX ──
@@ -884,11 +866,10 @@ function deleteInboxItem(id) {
 function renderTree() {
   const filtered = hideDone ? nodes.filter(n => !n.done) : nodes;
   if (!nodes.length) return '<div class="tree-view"><div class="empty"><div class="empty-icon">◎</div><div>＋でノードを追加</div></div></div>';
-  return `<div class="tree-view" id="tree-root" data-drop-root="true">${renderDropZone('root', -1)}${renderTreeNodes(filtered)}` +
-    `<button style="width:100%;padding:12px;border-radius:10px;border:1px dashed var(--border);background:none;color:var(--muted);font-size:13px;cursor:pointer;margin-top:4px;font-family:'Noto Sans JP',sans-serif" onclick="openForm(null,false)">＋ ルートにノードを追加</button></div>`;
+  return `<div class="tree-view">${renderTreeNodes(filtered)}<button style="width:100%;padding:12px;border-radius:10px;border:1px dashed var(--border);background:none;color:var(--muted);font-size:13px;cursor:pointer;margin-top:4px;font-family:'Noto Sans JP',sans-serif" onclick="openForm(null,false)">＋ ルートにノードを追加</button></div>`;
 }
 
-function renderTreeNodes(arr) { return arr.map((n,i) => renderTreeNode(n) + renderDropZone('root', i)).join(''); }
+function renderTreeNodes(arr) { return arr.map(n => renderTreeNode(n)).join(''); }
 
 function renderTreeNode(n) {
   const children = n.children||[];
@@ -924,8 +905,7 @@ function renderTreeNode(n) {
   const visibleChildren = hideDone ? children.filter(c => !c.done) : children;
   const childrenHtml = hasChildren && expanded
     ? `<div class="node-children" data-parent-id="${n.id}">
-        ${renderDropZone(n.id, -1)}
-        ${visibleChildren.map((c,i) => renderTreeNode(c) + renderDropZone(n.id, i)).join('')}
+        ${visibleChildren.map(c => renderTreeNode(c)).join('')}
        </div>`
     : '';
 
@@ -933,7 +913,6 @@ function renderTreeNode(n) {
     <div class="tree-node ${doneClass}" id="tnode-${n.id}" data-id="${n.id}">
       <div class="node-row">
         <div class="node-bar ${barCls}"></div>
-        <div class="drag-handle" data-drag-id="${n.id}" title="ドラッグして移動">⠿</div>
         ${expandBtn}
         <div class="node-check ${n.done?'checked':''}" onclick="toggleDone('${n.id}')"></div>
         <div class="node-body">
@@ -942,6 +921,8 @@ function renderTreeNode(n) {
           ${noteHtml}${recurHtml}${deadlineHtml}${progressHtml}
         </div>
         <div class="node-actions">
+          <button class="node-act-btn" onclick="moveNodeUp('${n.id}')" title="上に移動">↑</button>
+          <button class="node-act-btn" onclick="moveNodeDown('${n.id}')" title="下に移動">↓</button>
           <button class="node-act-btn add-child" onclick="openForm('${n.id}',false)" title="子を追加">＋</button>
           <button class="node-act-btn edit" onclick="openForm('${n.id}',true)" title="編集">✎</button>
           <button class="node-act-btn del" onclick="deleteNode('${n.id}')" title="削除">×</button>
@@ -951,9 +932,6 @@ function renderTreeNode(n) {
     </div>`;
 }
 
-function renderDropZone(parentId, idx) {
-  return `<div class="drop-zone" data-drop-parent="${parentId}" data-drop-idx="${idx}"></div>`;
-}
 
 // ── MATRIX ──
 function renderMatrix() {
@@ -1033,6 +1011,25 @@ function openForm(id, isEdit) {
     document.getElementById('f-interval').value = n.interval||'';
     document.getElementById('f-deadline').value = n.deadline||'';
     document.getElementById('form-submit-btn').textContent = '保存する';
+    // 親ノード変更フィールドを構築
+    const parentWrap = document.getElementById('f-parent-wrap');
+    parentWrap.style.display = 'block';
+    const parentSel = document.getElementById('f-parent');
+    parentSel.innerHTML = '<option value="">── ルート ──</option>';
+    getAllNodeOptions(nodes, 0, []).forEach(opt => {
+      if (opt.id === id) return; // 自分自身は除外
+      const el = document.createElement('option');
+      el.value = opt.id; el.textContent = opt.label;
+      parentSel.appendChild(el);
+    });
+    // 現在の親を選択状態に
+    const curParentArr = findParentArr(id, nodes);
+    if (curParentArr && curParentArr !== nodes) {
+      // 親のIDを探す
+      const allNodes = flattenNodes(nodes, []);
+      const curParent = allNodes.find(nd => (nd.children||[]).some(c => c.id === id));
+      if (curParent) parentSel.value = curParent.id;
+    }
   } else {
     formType = 'single'; formPriority = 'B';
     document.getElementById('form-title').textContent = 'ノードを追加';
@@ -1042,6 +1039,7 @@ function openForm(id, isEdit) {
     document.getElementById('f-note').value = '';
     document.getElementById('f-interval').value = '';
     document.getElementById('f-deadline').value = '';
+    document.getElementById('f-parent-wrap').style.display = 'none';
     document.getElementById('form-submit-btn').textContent = '追加する';
   }
   document.getElementById('f-interval-wrap').style.display = formType==='recurring' ? 'block' : 'none';
@@ -1071,7 +1069,26 @@ function submitNode() {
   const deadline = document.getElementById('f-deadline').value||null;
   if (formEditId) {
     const n = findNode(formEditId, nodes);
-    if (n) { n.title=title; n.type=formType; n.priority=formPriority; n.note=note; n.interval=interval; n.deadline=deadline; }
+    if (n) {
+      n.title=title; n.type=formType; n.priority=formPriority;
+      n.note=note; n.interval=interval; n.deadline=deadline;
+      // 親変更
+      const newParentId = document.getElementById('f-parent').value;
+      const curParentArr = findParentArr(formEditId, nodes) || nodes;
+      const curParentNode = flattenNodes(nodes,[]).find(nd => (nd.children||[]).some(c => c.id === formEditId));
+      const curParentId = curParentNode ? curParentNode.id : '';
+      if (newParentId !== curParentId && !isAncestorOf(formEditId, newParentId)) {
+        // 元から除去して新しい親に追加
+        deleteNodeById(formEditId, nodes);
+        if (newParentId) {
+          const p = findNode(newParentId, nodes);
+          if (p) { p.children = p.children||[]; p.children.push(n); p.expanded = true; }
+          else nodes.push(n);
+        } else {
+          nodes.push(n);
+        }
+      }
+    }
   } else {
     const node = { id:makeId(), title, type:formType, priority:formPriority, note, interval, deadline, done:false, expanded:true, children:[], createdAt:Date.now() };
     if (formParentId) { const p=findNode(formParentId,nodes); if(p){p.children=p.children||[];p.children.push(node);p.expanded=true;} }
@@ -1135,139 +1152,29 @@ function submitClarify() {
 }
 
 // ══════════════════════
-//   DRAG & DROP（Pointer Events API統合版）
+//   MOVE（↑↓ボタン＋親変更）
 // ══════════════════════
-let activeDropZone = null;
-let activeDropNode = null;
-let pointerStartX = 0;
-let pointerStartY = 0;
-const DRAG_THRESHOLD = 8; // ドラッグ開始までの移動距離px
-const LONG_PRESS_MS = 300;
 
-function initDragListeners() {
-  document.querySelectorAll('[data-drag-id]').forEach(handle => {
-    handle.addEventListener('pointerdown', onPointerDown);
-  });
+// 兄弟配列を返す（rootならnodes）
+function getSiblingArr(id) {
+  const parentArr = findParentArr(id, nodes);
+  return parentArr || nodes;
 }
 
-function onPointerDown(e) {
-  const id = e.currentTarget.dataset.dragId;
-  if (!id || e.button > 0) return;
-  e.currentTarget.setPointerCapture(e.pointerId);
-  pointerStartX = e.clientX;
-  pointerStartY = e.clientY;
-
-  // 長押しタイマー
-  longPressTimer = setTimeout(() => {
-    startDrag(id, e.clientX, e.clientY);
-  }, LONG_PRESS_MS);
-
-  const onMove = (ev) => {
-    const dx = ev.clientX - pointerStartX;
-    const dy = ev.clientY - pointerStartY;
-    if (!isDragging && Math.sqrt(dx*dx + dy*dy) > DRAG_THRESHOLD) {
-      clearTimeout(longPressTimer);
-      longPressTimer = null;
-      startDrag(id, ev.clientX, ev.clientY);
-    }
-    if (isDragging) {
-      ev.preventDefault();
-      moveGhost(ev.clientX, ev.clientY);
-      updateDropTarget(ev.clientX, ev.clientY);
-    }
-  };
-
-  const onUp = (ev) => {
-    clearTimeout(longPressTimer);
-    longPressTimer = null;
-    e.currentTarget.removeEventListener('pointermove', onMove);
-    e.currentTarget.removeEventListener('pointerup', onUp);
-    e.currentTarget.removeEventListener('pointercancel', onUp);
-    if (isDragging) finishDrag();
-  };
-
-  e.currentTarget.addEventListener('pointermove', onMove, { passive: false });
-  e.currentTarget.addEventListener('pointerup', onUp);
-  e.currentTarget.addEventListener('pointercancel', onUp);
+function moveNodeUp(id) {
+  const arr = getSiblingArr(id);
+  const idx = arr.findIndex(n => n.id === id);
+  if (idx <= 0) return;
+  [arr[idx-1], arr[idx]] = [arr[idx], arr[idx-1]];
+  render(); saveToDrive();
 }
 
-function startDrag(id, x, y) {
-  isDragging = true;
-  dragNodeId = id;
-  activeDropZone = null;
-  activeDropNode = null;
-  const n = findNode(id, nodes);
-  ghost.textContent = n ? n.title : '';
-  ghost.style.display = 'block';
-  moveGhost(x, y);
-  document.getElementById('tnode-'+id)?.classList.add('dragging');
-  // ドラッグ中はドロップゾーンを大きく表示
-  document.querySelectorAll('.drop-zone').forEach(z => z.style.minHeight = '32px');
-}
-
-function moveGhost(x, y) {
-  ghost.style.left = (x + 16) + 'px';
-  ghost.style.top  = (y + 8) + 'px';
-}
-
-function updateDropTarget(x, y) {
-  // 自動スクロール
-  const contentEl = document.getElementById('content');
-  const TOP = 110; const BOT = window.innerHeight - 80;
-  if (y < TOP) contentEl.scrollTop -= 14;
-  else if (y > BOT) contentEl.scrollTop += 14;
-
-  // ゴーストを非表示にして正確にhit test
-  ghost.style.visibility = 'hidden';
-  const el = document.elementFromPoint(x, y);
-  ghost.style.visibility = 'visible';
-
-  document.querySelectorAll('.drop-zone.active').forEach(z => z.classList.remove('active'));
-  document.querySelectorAll('.tree-node.drag-over').forEach(n => n.classList.remove('drag-over'));
-  activeDropZone = null;
-  activeDropNode = null;
-
-  if (!el) return;
-  if (el.closest('.header') || el.closest('.filter-bar') || el.closest('.tabbar')) return;
-
-  const zone = el.closest('.drop-zone');
-  if (zone) {
-    zone.classList.add('active');
-    activeDropZone = zone;
-  } else {
-    const node = el.closest('.tree-node');
-    if (node && node.dataset.id && node.dataset.id !== dragNodeId) {
-      node.classList.add('drag-over');
-      activeDropNode = node;
-    }
-  }
-}
-
-function finishDrag() {
-  isDragging = false;
-  ghost.style.display = 'none';
-  document.querySelectorAll('.drop-zone').forEach(z => {
-    z.classList.remove('active');
-    z.style.minHeight = '';
-  });
-  document.querySelectorAll('.tree-node').forEach(n => n.classList.remove('dragging', 'drag-over'));
-
-  if (!dragNodeId) return;
-
-  if (activeDropZone) {
-    const parentId = activeDropZone.dataset.dropParent;
-    const idx = parseInt(activeDropZone.dataset.dropIdx ?? '-1');
-    performDrop(dragNodeId, parentId === 'root' ? null : parentId, idx);
-  } else if (activeDropNode) {
-    const targetId = activeDropNode.dataset.id;
-    if (!isAncestorOf(dragNodeId, targetId)) {
-      performDrop(dragNodeId, targetId, -1);
-    }
-  }
-
-  dragNodeId = null;
-  activeDropZone = null;
-  activeDropNode = null;
+function moveNodeDown(id) {
+  const arr = getSiblingArr(id);
+  const idx = arr.findIndex(n => n.id === id);
+  if (idx < 0 || idx >= arr.length - 1) return;
+  [arr[idx], arr[idx+1]] = [arr[idx+1], arr[idx]];
+  render(); saveToDrive();
 }
 
 function isAncestorOf(srcId, dstId) {
