@@ -547,6 +547,9 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
   <button class="tab-btn" id="tab-timeline" onclick="switchView('timeline')">
     <span class="tab-icon">📅</span>期日
   </button>
+  <button class="tab-btn" id="tab-tree" onclick="switchView('tree')">
+    <span class="tab-icon">⌥</span>ツリー
+  </button>
 </nav>
 
 <!-- FORM SHEET（ツリー追加・編集） -->
@@ -1015,7 +1018,7 @@ function renderToday() {
   const priOrder = {A:0, B:1, C:2, D:3};
   const all = flattenNodes(nodes, []);
   const todayItems = all.filter(n => n.today && !n.done);
-  todayItems.sort((a, b) => (priOrder[a.priority]||3) - (priOrder[b.priority]||3));
+  todayItems.sort((a, b) => (priOrder[a.priority] ?? 3) - (priOrder[b.priority] ?? 3));
 
   if (!todayItems.length) {
     return '<div class="today-view"><div class="empty"><div class="empty-icon">★</div><div>今日やるタスクなし<br><span style="font-size:11px">ツリーやマトリクスの★で追加</span></div></div></div>';
