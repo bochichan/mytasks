@@ -306,6 +306,22 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 .star-btn:active { background: var(--surface2); }
 .star-btn.on { color: var(--b); }
 
+.date-display {
+  cursor: pointer; color: var(--muted); user-select: none;
+  display: flex; align-items: center; gap: 8px;
+}
+.date-display.has-date { color: var(--text); }
+.cal-day {
+  padding: 8px 0; border-radius: 8px; cursor: pointer;
+  font-size: 14px; font-family: 'JetBrains Mono', monospace; text-align: center;
+  touch-action: manipulation;
+}
+.cal-day:active { opacity: .7; }
+.cal-day.today { border: 1px solid var(--accent); }
+.cal-day.selected { background: var(--accent); color: white; }
+.cal-day.sun { color: var(--a); }
+.cal-day.sat { color: var(--d); }
+
 
 /* ══════════════════════════
    TIMELINE VIEW
@@ -580,7 +596,8 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
     <input class="f-input" id="f-interval" placeholder="例：毎週月曜" />
   </div>
   <div class="field-label">期日（任意）</div>
-  <input class="f-input" id="f-deadline" type="date" />
+  <div class="f-input date-display" id="f-deadline-display" onclick="openCal('f-deadline')">📅 日付を選択</div>
+  <input type="hidden" id="f-deadline" />
   <div id="f-parent-wrap" style="display:none">
     <div class="field-label">親ノードを変更</div>
     <select class="f-select" id="f-parent"></select>
@@ -619,7 +636,8 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
     <input class="f-input" id="cl-interval" placeholder="例：毎週月曜" />
   </div>
   <div class="field-label">期日（任意）</div>
-  <input class="f-input" id="cl-deadline" type="date" />
+  <div class="f-input date-display" id="cl-deadline-display" onclick="openCal('cl-deadline')">📅 日付を選択</div>
+  <input type="hidden" id="cl-deadline" />
   <div class="field-label">親ノード（ツリー上の位置）</div>
   <select class="f-select" id="cl-parent">
     <option value="">── ルートに追加 ──</option>
@@ -627,6 +645,22 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
   <div class="sheet-actions">
     <button class="btn btn-ghost" onclick="closeClarify()">キャンセル</button>
     <button class="btn btn-primary" onclick="submitClarify()">ツリーに移動</button>
+  </div>
+</div>
+
+<!-- CALENDAR SHEET -->
+<div class="sheet-overlay" id="cal-overlay" onclick="closeCal()" style="z-index:32"></div>
+<div class="sheet" id="cal-sheet" style="z-index:33">
+  <div class="sheet-handle"></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 4px 12px">
+    <button class="icon-btn" onclick="calPrevMonth()">‹</button>
+    <span id="cal-month-label" style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600"></span>
+    <button class="icon-btn" onclick="calNextMonth()">›</button>
+  </div>
+  <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px"></div>
+  <div style="margin-top:16px;display:flex;gap:8px">
+    <button class="btn btn-ghost" onclick="calClear()">クリア</button>
+    <button class="btn btn-ghost" onclick="closeCal()">キャンセル</button>
   </div>
 </div>
 
@@ -1051,6 +1085,86 @@ function toggleToday(id) {
   render(); saveToDrive();
 }
 
+// ══════════════════════
+//   CALENDAR PICKER
+// ══════════════════════
+let calTarget = null;
+let calYear, calMonth;
+
+function openCal(target) {
+  calTarget = target;
+  const val = document.getElementById(target).value;
+  const d = val ? new Date(val + 'T00:00:00') : new Date();
+  calYear = d.getFullYear();
+  calMonth = d.getMonth();
+  renderCal();
+  document.getElementById('cal-overlay').classList.add('open');
+  document.getElementById('cal-sheet').classList.add('open');
+}
+
+function closeCal() {
+  document.getElementById('cal-overlay').classList.remove('open');
+  document.getElementById('cal-sheet').classList.remove('open');
+}
+
+function calPrevMonth() {
+  calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCal();
+}
+
+function calNextMonth() {
+  calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCal();
+}
+
+function calSelect(dateStr) {
+  document.getElementById(calTarget).value = dateStr;
+  const disp = document.getElementById(calTarget + '-display');
+  disp.textContent = '📅 ' + dateStr;
+  disp.classList.add('has-date');
+  closeCal();
+}
+
+function calClear() {
+  document.getElementById(calTarget).value = '';
+  const disp = document.getElementById(calTarget + '-display');
+  disp.textContent = '📅 日付を選択';
+  disp.classList.remove('has-date');
+  closeCal();
+}
+
+function setDateDisplay(target, val) {
+  const disp = document.getElementById(target + '-display');
+  if (!disp) return;
+  if (val) { disp.textContent = '📅 ' + val; disp.classList.add('has-date'); }
+  else { disp.textContent = '📅 日付を選択'; disp.classList.remove('has-date'); }
+}
+
+function renderCal() {
+  const MONTHS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  const DAYS = ['日','月','火','水','木','金','土'];
+  document.getElementById('cal-month-label').textContent = `${calYear}年 ${MONTHS[calMonth]}`;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const selected = document.getElementById(calTarget).value;
+  let html = DAYS.map((d, i) => {
+    const c = i===0 ? 'var(--a)' : i===6 ? 'var(--d)' : 'var(--muted)';
+    return `<div style="font-size:10px;color:${c};padding:4px 0;text-align:center;font-family:'JetBrains Mono',monospace">${d}</div>`;
+  }).join('');
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  for (let i = 0; i < firstDay; i++) html += '<div></div>';
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = new Date(calYear, calMonth, d).getTime() === today.getTime();
+    const isSel = dateStr === selected;
+    const dow = new Date(calYear, calMonth, d).getDay();
+    const dowCls = dow===0 ? ' sun' : dow===6 ? ' sat' : '';
+    const selCls = isSel ? ' selected' : isToday ? ' today' : '';
+    html += `<div class="cal-day${dowCls}${selCls}" onclick="calSelect('${dateStr}')">${d}</div>`;
+  }
+  document.getElementById('cal-grid').innerHTML = html;
+}
+
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // ══════════════════════
@@ -1087,6 +1201,7 @@ function openForm(id, isEdit) {
     document.getElementById('f-note').value = n.note||'';
     document.getElementById('f-interval').value = n.interval||'';
     document.getElementById('f-deadline').value = n.deadline||'';
+    setDateDisplay('f-deadline', n.deadline||'');
     document.getElementById('form-submit-btn').textContent = '保存する';
     // 親ノード変更フィールドを構築
     const parentWrap = document.getElementById('f-parent-wrap');
@@ -1116,6 +1231,7 @@ function openForm(id, isEdit) {
     document.getElementById('f-note').value = '';
     document.getElementById('f-interval').value = '';
     document.getElementById('f-deadline').value = '';
+    setDateDisplay('f-deadline', '');
     document.getElementById('f-parent-wrap').style.display = 'none';
     document.getElementById('form-submit-btn').textContent = '追加する';
   }
@@ -1188,6 +1304,7 @@ function openClarify(inboxId) {
   document.getElementById('cl-note').value = '';
   document.getElementById('cl-interval').value = '';
   document.getElementById('cl-interval-wrap').style.display = 'none';
+  setDateDisplay('cl-deadline', '');
   refreshClSeg();
   // 親ノード選択肢を構築
   const select = document.getElementById('cl-parent');
