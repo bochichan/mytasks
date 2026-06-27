@@ -127,8 +127,6 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
   background: var(--surface); margin-bottom: 7px;
   transition: opacity .15s, box-shadow .15s;
 }
-.tree-node.drag-over { box-shadow: 0 0 0 2px var(--accent); }
-.tree-node.dragging { opacity: .4; }
 
 .node-row { display: flex; align-items: center; gap: 10px; padding: 12px 12px 10px 10px; position: relative; overflow: hidden; border-radius: 10px 10px 0 0; }
 .node-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
@@ -626,9 +624,6 @@ let clType = 'single';
 let clPriority = 'B';
 let clarifyTargetId = null;
 
-// move state
-let longPressTimer = null;
-let isDragging = false;
 
 // ══════════════════════
 //   AUTH（Workerベース）
@@ -1180,37 +1175,6 @@ function moveNodeDown(id) {
 function isAncestorOf(srcId, dstId) {
   const src = findNode(srcId, nodes); if (!src) return false;
   return !!findNode(dstId, src.children||[]);
-}
-
-function performDrop(srcId, newParentId, insertIdx) {
-  if (srcId === newParentId) return;
-  if (newParentId && isAncestorOf(srcId, newParentId)) return;
-  const node = findNode(srcId, nodes); if (!node) return;
-
-  // 元の場所から除去
-  deleteNodeById(srcId, nodes);
-
-  // 挿入先の配列を取得
-  let targetArr;
-  if (newParentId) {
-    const p = findNode(newParentId, nodes);
-    if (!p) { nodes.push(node); render(); saveToDrive(); return; }
-    p.children = p.children || [];
-    p.expanded = true;
-    targetArr = p.children;
-  } else {
-    targetArr = nodes;
-  }
-
-  // insertIdx: -1なら末尾、それ以外は指定位置に挿入
-  // ただし削除後にインデックスがずれる可能性があるのでclamp
-  if (insertIdx < 0 || insertIdx >= targetArr.length) {
-    targetArr.push(node);
-  } else {
-    targetArr.splice(insertIdx + 1, 0, node);
-  }
-
-  render(); saveToDrive();
 }
 
 
