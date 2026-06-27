@@ -275,6 +275,37 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--muted); font-size: 13px; padding: 60px 0; }
 .empty-icon { font-size: 40px; opacity: .3; }
 
+/* ══════════════════════════
+   TODAY VIEW
+══════════════════════════ */
+.today-view { padding: 10px 12px 24px; }
+.today-item {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; margin-bottom: 7px;
+  display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 14px;
+}
+.today-item.today-done { opacity: .45; }
+.today-item.today-done .today-title { text-decoration: line-through; }
+.today-check {
+  width: 22px; height: 22px; border: 2px solid var(--border); border-radius: 6px;
+  cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  touch-action: manipulation; transition: all .15s;
+}
+.today-check.checked { background: var(--accent); border-color: var(--accent); }
+.today-check.checked::after { content: '✓'; color: white; font-size: 11px; font-weight: 700; }
+.today-body { flex: 1; min-width: 0; }
+.today-title { font-size: 14px; line-height: 1.4; word-break: break-all; }
+.today-path { font-size: 10px; color: var(--muted); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+.today-meta { display: flex; gap: 5px; margin-top: 4px; }
+.today-actions { display: flex; gap: 2px; flex-shrink: 0; }
+.star-btn {
+  width: 28px; height: 28px; border-radius: 7px; border: none; background: none;
+  color: var(--border); cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center; touch-action: manipulation;
+}
+.star-btn:active { background: var(--surface2); }
+.star-btn.on { color: var(--b); }
+
 
 /* ══════════════════════════
    TIMELINE VIEW
@@ -507,8 +538,8 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
     <span class="tab-icon">📥</span>Inbox
     <span class="tab-badge" id="inbox-badge" style="display:none"></span>
   </button>
-  <button class="tab-btn" id="tab-tree" onclick="switchView('tree')">
-    <span class="tab-icon">⌥</span>ツリー
+  <button class="tab-btn" id="tab-today" onclick="switchView('today')">
+    <span class="tab-icon">★</span>今日
   </button>
   <button class="tab-btn" id="tab-matrix" onclick="switchView('matrix')">
     <span class="tab-icon">⊞</span>マトリクス
@@ -601,6 +632,7 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 <div class="sheet" id="menu-sheet">
   <div class="sheet-handle"></div>
   <div class="sheet-title">メニュー</div>
+  <div class="menu-item" onclick="switchView('tree'); closeMenu()"><span class="menu-icon">⌥</span>ツリー表示</div>
   <div class="menu-item" onclick="syncFromDrive(); closeMenu()"><span class="menu-icon">↓</span>ドライブから再読み込み</div>
   <div class="menu-item" onclick="forceSyncToDrive(); closeMenu()"><span class="menu-icon">↑</span>ドライブへ強制保存</div>
   <div class="menu-item" onclick="signOut(); closeMenu()"><span class="menu-icon">⏻</span>ログアウト</div>
@@ -775,9 +807,10 @@ function toggleHideDone() {
 function switchView(v) {
   currentView = v;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + v).classList.add('active');
-  const labels = { inbox: 'Inbox', tree: 'ツリー', matrix: 'マトリクス', timeline: 'タイムライン' };
-  document.getElementById('header-title').textContent = labels[v];
+  const tabEl = document.getElementById('tab-' + v);
+  if (tabEl) tabEl.classList.add('active');
+  const labels = { inbox: 'Inbox', today: '今日', tree: 'ツリー', matrix: 'マトリクス', timeline: 'タイムライン' };
+  document.getElementById('header-title').textContent = labels[v] || v;
   render();
 }
 
@@ -794,6 +827,7 @@ function render() {
   updateInboxBadge();
   const el = document.getElementById('content');
   if (currentView === 'inbox') el.innerHTML = renderInbox();
+  else if (currentView === 'today') el.innerHTML = renderToday();
   else if (currentView === 'tree') el.innerHTML = renderTree();
   else if (currentView === 'timeline') { el.innerHTML = renderTimeline(); initTimelineSync(); }
   else el.innerHTML = renderMatrix();
@@ -916,6 +950,7 @@ function renderTreeNode(n) {
           ${noteHtml}${recurHtml}${deadlineHtml}${progressHtml}
         </div>
         <div class="node-actions">
+          <button class="star-btn ${n.today?'on':''}" onclick="toggleToday('${n.id}')" title="今日やる">★</button>
           <button class="node-act-btn" onclick="moveNodeUp('${n.id}')" title="上に移動">↑</button>
           <button class="node-act-btn" onclick="moveNodeDown('${n.id}')" title="下に移動">↓</button>
           <button class="node-act-btn add-child" onclick="openForm('${n.id}',false)" title="子を追加">＋</button>
@@ -954,6 +989,10 @@ function renderMatrix() {
           <div class="matrix-title">${esc(n.title)}</div>
           ${pathStr?`<div class="matrix-path">${esc(pathStr)}</div>`:''}
         </div>
+        <div class="today-actions">
+          <button class="star-btn ${n.today?'on':''}" onclick="toggleToday('${n.id}')" title="今日やる">★</button>
+          <button class="node-act-btn edit" onclick="openForm('${n.id}',true)" title="編集">✎</button>
+        </div>
       </div>`;
     }).join('');
     html += '</div>';
@@ -971,6 +1010,44 @@ function renderMatrix() {
   return html;
 }
 
+// ── TODAY ──
+function renderToday() {
+  const priOrder = {A:0, B:1, C:2, D:3};
+  const all = flattenNodes(nodes, []);
+  const todayItems = all.filter(n => n.today && !n.done);
+  todayItems.sort((a, b) => (priOrder[a.priority]||3) - (priOrder[b.priority]||3));
+
+  if (!todayItems.length) {
+    return '<div class="today-view"><div class="empty"><div class="empty-icon">★</div><div>今日やるタスクなし<br><span style="font-size:11px">ツリーやマトリクスの★で追加</span></div></div></div>';
+  }
+
+  const items = todayItems.map(n => {
+    const path = getPath(n.id, nodes, []);
+    const parentName = path && path.length ? path[path.length - 1] : '';
+    const bPri = 'badge-' + n.priority.toLowerCase();
+    return `<div class="today-item">
+      <div class="today-check" onclick="toggleDone('${n.id}')"></div>
+      <div class="today-body">
+        <div class="today-title">${esc(n.title)}</div>
+        <div class="today-meta"><span class="badge ${bPri}">${n.priority}</span></div>
+        ${parentName ? `<div class="today-path">${esc(parentName)}</div>` : ''}
+      </div>
+      <div class="today-actions">
+        <button class="star-btn on" onclick="toggleToday('${n.id}')" title="今日から外す">★</button>
+        <button class="node-act-btn edit" onclick="openForm('${n.id}',true)" title="編集">✎</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="today-view">${items}</div>`;
+}
+
+function toggleToday(id) {
+  const n = findNode(id, nodes); if (!n) return;
+  n.today = !n.today;
+  render(); saveToDrive();
+}
+
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // ══════════════════════
@@ -983,7 +1060,9 @@ function toggleExpand(id) {
 }
 function toggleDone(id) {
   const n = findNode(id, nodes); if (!n) return;
-  n.done = !n.done; render(); saveToDrive();
+  n.done = !n.done;
+  if (n.done) n.today = false;
+  render(); saveToDrive();
 }
 function deleteNode(id) {
   if (!confirm('このノードと子をすべて削除しますか？')) return;
