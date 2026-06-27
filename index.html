@@ -670,6 +670,7 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
   <div class="sheet-handle"></div>
   <div class="sheet-title">メニュー</div>
   <div class="menu-item" onclick="switchView('tree'); closeMenu()"><span class="menu-icon">⌥</span>ツリー表示</div>
+  <div class="menu-item" onclick="generateApiKey(); closeMenu()"><span class="menu-icon">🔑</span>APIキーを生成</div>
   <div class="menu-item" onclick="syncFromDrive(); closeMenu()"><span class="menu-icon">↓</span>ドライブから再読み込み</div>
   <div class="menu-item" onclick="forceSyncToDrive(); closeMenu()"><span class="menu-icon">↑</span>ドライブへ強制保存</div>
   <div class="menu-item" onclick="signOut(); closeMenu()"><span class="menu-icon">⏻</span>ログアウト</div>
@@ -1555,6 +1556,13 @@ function quickEditDeadline(nodeId) {
 // ══════════════════════
 function openMenu() { document.getElementById('menu-overlay').classList.add('open'); document.getElementById('menu-sheet').classList.add('open'); }
 function closeMenu() { document.getElementById('menu-overlay').classList.remove('open'); document.getElementById('menu-sheet').classList.remove('open'); }
+
+async function generateApiKey() {
+  const res = await fetch(`${WORKER}/api/setup-key`, { method: 'POST', credentials: 'include' });
+  if (!res.ok) { alert('ログインし直してから試してください'); return; }
+  const { key } = await res.json();
+  prompt('このAPIキーをコピーしてMCPサーバーに設定してください（再表示されません）', key);
+}
 
 // ══════════════════════
 //   KEYBOARD
