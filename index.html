@@ -185,6 +185,8 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
   display: flex; flex-direction: column; gap: 6px; background: var(--bg);
 }
 .node-children .tree-node { margin-bottom: 0; }
+.tree-node.drag-over { box-shadow: 0 0 0 2px var(--accent); }
+.tree-node.dragging { opacity: .4; }
 
 
 /* ══════════════════════════
@@ -680,6 +682,9 @@ body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: va
 const WORKER = 'https://mytasks.kinoerumesu2000.workers.dev';
 const LS_KEY = 'sasami_tasks_v4';
 
+const isDesktop = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+let dragSrcId = null;
+
 let nodes = [];
 let inbox = [];
 let currentView = 'inbox';
@@ -977,7 +982,8 @@ function renderTreeNode(n) {
     : '';
 
   return `
-    <div class="tree-node ${doneClass}" id="tnode-${n.id}" data-id="${n.id}">
+    <div class="tree-node ${doneClass}" id="tnode-${n.id}" data-id="${n.id}"
+      ${isDesktop ? `draggable="true" ondragstart="dragStart(event,'${n.id}')" ondragend="dragEnd()" ondragover="dragOver(event,'${n.id}')" ondrop="dragDrop(event,'${n.id}')"` : ''}>
       <div class="node-row">
         <div class="node-bar ${barCls}"></div>
         ${expandBtn}
@@ -1055,8 +1061,13 @@ function renderToday() {
   const todayItems = all.filter(n => n.today && !n.done);
   todayItems.sort((a, b) => (priOrder[a.priority] ?? 3) - (priOrder[b.priority] ?? 3));
 
+  const quickInput = `<div class="inbox-quick">
+    <input class="inbox-quick-input" id="today-input" placeholder="今日やることを追加…" onkeydown="if(event.key==='Enter')addToToday()" />
+    <button class="inbox-add-btn" onclick="addToToday()">＋</button>
+  </div>`;
+
   if (!todayItems.length) {
-    return '<div class="today-view"><div class="empty"><div class="empty-icon">★</div><div>今日やるタスクなし<br><span style="font-size:11px">ツリーやマトリクスの★で追加</span></div></div></div>';
+    return `<div class="today-view">${quickInput}<div class="empty"><div class="empty-icon">★</div><div>今日やるタスクなし</div></div></div>`;
   }
 
   const items = todayItems.map(n => {
@@ -1077,7 +1088,17 @@ function renderToday() {
     </div>`;
   }).join('');
 
-  return `<div class="today-view">${items}</div>`;
+  return `<div class="today-view">${quickInput}${items}</div>`;
+}
+
+function addToToday() {
+  const input = document.getElementById('today-input');
+  const title = input.value.trim();
+  if (!title) return;
+  const node = { id: makeId(), title, type: 'single', priority: 'B', note: null, interval: null, deadline: null, done: false, expanded: true, children: [], today: true, createdAt: Date.now() };
+  nodes.push(node);
+  input.value = '';
+  render(); saveToDrive();
 }
 
 function toggleToday(id) {
@@ -1354,6 +1375,49 @@ function submitClarify() {
 function getSiblingArr(id) {
   const parentArr = findParentArr(id, nodes);
   return parentArr || nodes;
+}
+
+// ══════════════════════
+//   DRAG & DROP（デスクトップのみ）
+// ══════════════════════
+function dragStart(e, id) {
+  dragSrcId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => {
+    const el = document.getElementById('tnode-' + id);
+    if (el) el.classList.add('dragging');
+  }, 0);
+}
+
+function dragEnd() {
+  document.querySelectorAll('.tree-node').forEach(el => el.classList.remove('dragging', 'drag-over'));
+  dragSrcId = null;
+}
+
+function dragOver(e, id) {
+  if (!dragSrcId || dragSrcId === id) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.tree-node').forEach(el => el.classList.remove('drag-over'));
+  const el = document.getElementById('tnode-' + id);
+  if (el) el.classList.add('drag-over');
+}
+
+function dragDrop(e, targetId) {
+  e.preventDefault();
+  e.stopPropagation();
+  document.querySelectorAll('.tree-node').forEach(el => el.classList.remove('drag-over'));
+  if (!dragSrcId || dragSrcId === targetId) return;
+  if (isAncestorOf(dragSrcId, targetId)) return;
+  const src = findNode(dragSrcId, nodes);
+  if (!src) return;
+  const targetParentArr = findParentArr(targetId, nodes) || nodes;
+  deleteNodeById(dragSrcId, nodes);
+  const newIdx = targetParentArr.findIndex(n => n.id === targetId);
+  if (newIdx >= 0) targetParentArr.splice(newIdx, 0, src);
+  else targetParentArr.push(src);
+  dragSrcId = null;
+  render(); saveToDrive();
 }
 
 function moveNodeUp(id) {
