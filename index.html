@@ -559,6 +559,12 @@ body::before {
 <script>
 const WORKER = 'https://mytasks.kinoerumesu2000.workers.dev';
 const LS_KEY = 'sasami_tasks_v4';
+const SID_KEY = 'mytasks_sid';
+
+function sidHeader() {
+  const sid = localStorage.getItem(SID_KEY);
+  return sid ? { Authorization: `Bearer ${sid}` } : {};
+}
 
 const isDesktop = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 let dragSrcId = null;
@@ -582,13 +588,18 @@ let clarifyTargetId = null;
 //   AUTH（Workerベース）
 // ══════════════════════
 async function checkAuth() {
+  if (!localStorage.getItem(SID_KEY)) {
+    document.getElementById('login-screen').classList.remove('hidden');
+    return;
+  }
   try {
-    const res = await fetch(`${WORKER}/auth/status`, { credentials: 'include' });
+    const res = await fetch(`${WORKER}/auth/status`, { headers: sidHeader() });
     const data = await res.json();
     if (data.loggedIn) {
       document.getElementById('login-screen').classList.add('hidden');
       await syncFromDrive();
     } else {
+      localStorage.removeItem(SID_KEY);
       document.getElementById('login-screen').classList.remove('hidden');
     }
   } catch {
@@ -606,7 +617,8 @@ function signIn() {
 }
 
 async function signOut() {
-  try { await fetch(`${WORKER}/auth/logout`, { method: 'POST', credentials: 'include' }); } catch {}
+  try { await fetch(`${WORKER}/auth/logout`, { method: 'POST', headers: sidHeader() }); } catch {}
+  localStorage.removeItem(SID_KEY);
   document.getElementById('login-screen').classList.remove('hidden');
 }
 
@@ -618,7 +630,7 @@ function getData() { return { nodes, inbox }; }
 async function syncFromDrive() {
   setSyncStatus('busy', '読込中…');
   try {
-    const res = await fetch(`${WORKER}/tasks`, { credentials: 'include' });
+    const res = await fetch(`${WORKER}/tasks`, { headers: sidHeader() });
     if (res.status === 401) {
       document.getElementById('login-screen').classList.remove('hidden');
       return;
@@ -642,8 +654,7 @@ async function saveToDrive() {
   try {
     const res = await fetch(`${WORKER}/tasks`, {
       method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...sidHeader() },
       body: JSON.stringify(data),
     });
     if (res.status === 401) {
@@ -1509,7 +1520,7 @@ function openMenu() { document.getElementById('menu-overlay').classList.add('ope
 function closeMenu() { document.getElementById('menu-overlay').classList.remove('open'); document.getElementById('menu-sheet').classList.remove('open'); }
 
 async function generateApiKey() {
-  const res = await fetch(`${WORKER}/api/setup-key`, { method: 'POST', credentials: 'include' });
+  const res = await fetch(`${WORKER}/api/setup-key`, { method: 'POST', headers: sidHeader() });
   if (!res.ok) { alert('ログインし直してから試してください'); return; }
   const { key } = await res.json();
   prompt('このAPIキーをコピーしてMCPサーバーに設定してください（再表示されません）', key);
@@ -1527,10 +1538,12 @@ document.addEventListener('keydown', e => {
 //   INIT
 // ══════════════════════
 window.onload = () => {
-  // ログイン後のリダイレクト判定
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('login') === 'ok') {
-    history.replaceState({}, '', window.location.pathname);
+  // ログイン後のリダイレクト判定（sidはCookieに依存せずURLフラグメントで受け取る）
+  if (window.location.hash.includes('sid=')) {
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const sid = params.get('sid');
+    if (sid) localStorage.setItem(SID_KEY, sid);
+    history.replaceState({}, '', window.location.pathname + window.location.search);
   }
   checkAuth();
 };
